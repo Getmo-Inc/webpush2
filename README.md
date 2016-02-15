@@ -83,7 +83,9 @@ if (!webpush) {
 ##### The "webpush" object
 ---
 ###### `webpush.checkStatus()`
+
 > The **chechStatus()** method check the current user registration status.
+
 - The **sucess** callback returns an object called ``"user"``. The ***"user"*** object is where you interact the most. We talk more about all the methods of the ***"user"*** object below.
 - The **error** callback returns a string called ``"status"``. You can verify the **"status"** for the following values: ``"default"``, ``"denied"``, ``"error"``.
 ```javascript
@@ -113,7 +115,9 @@ webpush.checkStatus().then(function(user) {
 ```
 
 ###### `webpush.subscribe()`
+
 > The **subscribe()** method triggers the "Notification Permission Ask" if the user doesn't have answered it yet.
+
 - The **sucess** callback returns an object called ``"user"`` too. We talk more about all the interaction with the **"user"** object below. Keep going...
 - The **error** callback returns nothing. But you can inspect your console for extra errors, generated to help you understand what happened.
 ```javascript
@@ -136,7 +140,9 @@ webpush.subscribe().then(function(user) {
 ##### The "user" object
 ---
 ###### `user.getTag('TAG_NAME')`
+
 > The **getTag()** method is triggered by ***"user"*** object and receives a single "TAG_NAME" parameter.
+
 - The **sucess** callback returns an array called ``"result"`` with all values attached to this tag.
 - The **error** callback returns the same catch error object of the javascript "fetch API".
 ```javascript
@@ -150,7 +156,9 @@ user.getTag('TAG_NAME').then(function(result){
 ```
 
 ###### `user.addTag('TAG_NAME', 'TAG_VALUE', 'TAG_TYPE')`
+
 > The **addTag()** method is triggered by ***"user"*** object and receives three parameters: "TAG_NAME", "TAG_VALUE", "TAG_TYPE". The ***"TAG_TYPE"*** must be one of the following values: ``"STRING"``, ``"TIMESTAMP"``, ``"BOOLEAN"``, ``"NUMERIC"``, ``"LIST"``.
+
 - The **sucess** callback returns a object called ``"result"`` with a success message.
 - The **error** callback returns the same catch error object of the javascript "fetch API".
 
@@ -190,7 +198,9 @@ user.removeTag('TAG_NAME', 'TAG_VALUE', 'TAG_TYPE').then(function(result){
 ```
 
 ###### `user.getUnreadNotifications()`
+
 > The **getUnreadNotifications()** method triggered by ***"user"*** object whitout parameters.
+
 - The **sucess** callback returns a array of objects called **"result"** with all unread notifications. The list of objects has two important properties: ``result.pushid`` and ``result.payload``. The **"pushid"** information is important for further utilization when you trigger the remove unread notifications method. The **"payload"** contain all information you need to know about the push notification (``title``, ``text``, ``ìcon``, ``clickUrl``).
 - The **error** callback returns the same catch error object of the javascript "fetch API".
 ```javascript
@@ -204,7 +214,9 @@ user.getUnreadNotifications().then(function(result){
 ```
 
 ###### `user.getLastNotifications()`
+
 > The **getLastNotifications()** method is triggered by ***"user"*** object whitout parameters.
+
 - The **sucess** callback returns a array of objects called **"result"** with the latest read notifications. The list of objects has one important property: ``result.payload``. The **"payload"** contain all information you need to know about the push notification (``title``, ``text``, ``ìcon``, ``clickUrl``).
 - The **error** callback returns the same catch error object of the javascript "fetch API".
 ```javascript
@@ -218,7 +230,9 @@ user.getLastNotifications().then(function(result){
 ```
 
 ###### `user.removeUnreadNotification(pushid)`
+
 > The **removeUnreadNotification()** method is trigger from the user object and receives a single ``"pushid"`` parameter. This parameter you get on the result of the "getUnreadNotifications()" method.
+
 - The **sucess** callback returns a object called ``"result"`` with a success message.
 - The **error** callback returns the same catch error object of the javascript "fetch API".
 ```javascript
@@ -231,7 +245,9 @@ user.removeUnreadNotification(pushid).then(function(result){
 ```
 
 ###### `user.removeAllUnreadNotifications()`
+
 > The **removeAllUnreadNotifications()** method is triggered by ***"user"*** object whitout parameters.
+
 - The **sucess** callback returns a object called ``"result"`` with a success message.
 - The **error** callback returns the same catch error object of the javascript "fetch API".
 ```javascript
