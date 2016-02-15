@@ -178,7 +178,9 @@ user.addTag('TAG_NAME', 'TAG_VALUE', 'TAG_TYPE').then(function(result){
 ```
 
 ###### `user.removeTag('TAG_NAME', 'TAG_VALUE', 'TAG_TYPE')`
+
 > The **removeTag()** method is triggered by ***"user"*** object and receives three parameters: "TAG_NAME", "TAG_VALUE", "TAG_TYPE". The ***"TAG_TYPE"*** must be one of the following values: ``"STRING"``, ``"TIMESTAMP"``, ``"BOOLEAN"``, ``"NUMERIC"``, ``"LIST"``.
+
 - The **sucess** callback returns a object called ``"result"`` with a success message.
 - The **error** callback returns the same catch error object of the javascript "fetch API".
 
