@@ -18,6 +18,7 @@ Download "Webpush Installation Files" (*.zip) from **https://cdn.getmo.com.br/we
 - webpush-chrome-manifest.json
 - webpush-service-worker.js
 - webpush-image.png (customize the image before installation)
+
 > When you are logged in, click on **Docs & SDK** section and search for the CHROME box, then click on **Chrome SDK** button to download the pack.
 
 After that, you load the SDK's current version in your html page from one of this two sources: 
