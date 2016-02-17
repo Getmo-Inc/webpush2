@@ -13,6 +13,8 @@ This project integrates off-site webpush notification system with **Smartpush AP
 
 ### How to install it?
 
+**Important**, if you dont have a https connection and you choose to use owr infra-structure, you can skip the installation. The following files are already present on owr CDN.
+
 Download "Webpush Installation Files" (*.zip) from **https://cdn.getmo.com.br/webpush-pack-1.1.zip** and install the following files in the root of your website:
 - webpush.html
 - webpush-chrome-manifest.json
