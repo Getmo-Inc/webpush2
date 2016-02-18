@@ -58,7 +58,7 @@ var webpush = window.Smartpush.create({
 });
 ```
 
-When you need to centralize subdomains, you can pass a third parameter with the secure URL, like so:
+When you need to centralize subdomains, you can pass a second parameter with the secure URL, like so:
 
 ```javascript
 var webpush = window.Smartpush.create({
