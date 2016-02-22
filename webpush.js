@@ -51,6 +51,7 @@
             regid: null,
             platform: null,
             setupEndPoint: null,
+            templateEndPoint: null,
             safariPushID: null
         },
         _checkSupport: function (platform) {
@@ -154,7 +155,7 @@
                     }
                 }
                 self.localStorage.setItem(lsName, JSON.stringify(this.params));
-                // nops... send current this.params to ls-center when needed (if second url param exists on setup)
+                // todo? nops... send current this.params to ls-center when needed (if second url param exists on setup)
             }
         },
         _getParam: function(name) {
@@ -168,7 +169,7 @@
                         this.params[name] = lsParams[name];
                         return lsParams[name];
                     } else {
-                        // nops search on ls-center for the needed param. how to make async work?
+                        // todo? nops search on ls-center for the needed param. how to make async work?
                         return null;
                     }
                 } catch(e) {
@@ -204,7 +205,6 @@
             }
             return fetch(url, {
                 method: method,
-                //mode: 'no-cors',
                 headers: {
                     'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
                 },
@@ -235,6 +235,76 @@
         //         console.error('No "hwid" found when removing device.');
         //     }
         // },
+        _makeBase64OfImage: function(img) {
+            var canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            return canvas.toDataURL("image/png");
+        },
+        _cleanAndPrepareHtml: function(html) {
+            var me = this;
+            return new Promise(function(resolve, reject) {
+
+                var tempDocument = new DOMParser().parseFromString(html.replace(/<script.*?>((\n*)?.*?(\n*)?)*?<\/script>/igm, ''), 'text/html');
+
+                var tempImages = tempDocument.getElementsByTagName('img');
+                var base64ImagesArray = [];
+                for (var i = 0; i < tempImages.length; i++) {
+                    var image = new Image();
+                    image.addEventListener('load', function(e) {
+                        this.removeEventListener('load');
+                        e.stopPropagation();
+                        base64ImagesArray.push(me._makeBase64OfImage(this));
+                    }, true);
+                    image.src = tempImages[i].src;
+                }
+
+                var tempCss = tempDocument.getElementsByTagName('link');
+                var cssArray = [];
+                for (var i = 0; i < tempCss.length; i++) {
+                    var href = tempCss[i].href;
+                    if (href) {
+                        fetch(href).then(function(response) {
+                            response.text().then(function(result) {
+
+                                var res = replace.(/url\s?\(["']?(.*)([a-zA-Z0-9\/\.\-\+_':;,=]+\.(png|jpg|gif|jpeg|tiff){1})["']?\)/igm, '');
+
+                                cssArray.push(result);
+                            }.bind(this));
+                        }.bind(this));
+                    } else {
+                        cssArray.push('');
+                    }
+                }
+
+                var interval = setInterval(function(){
+                    if (base64ImagesArray.length >= tempImages.length && cssArray.length >= tempCss.length) {
+
+                        for (var i = 0; i < tempImages.length; i++) {
+                            tempImages[i].src = base64ImagesArray[i];
+                        }
+
+                        var style = document.createElement("style");
+                        console.log(cssArray.join(' '));
+                        style.innerHTML = cssArray.join(' ');
+                        tempDocument.head.appendChild(style);
+                        while (tempCss[0]) tempCss[0].parentNode.removeChild(tempCss[0]);
+
+
+                        clearInterval(interval);
+                        //resolve();
+
+                        console.log('tempDocument', tempDocument);
+                    }
+                }.bind(this), 150);
+            }.bind(this));
+
+            // base64 nas imagens
+            // trazer os css para dentro da página
+            // converter imagens restantes do css em base64
+        },
         _processMessageFromIframe: function(e) {
             switch (e.data.status) {
                 case 'ready':
@@ -260,11 +330,34 @@
                         break;
                     }
                 case 'registered-redirect':
-                    var params = this._encodeParams({
+                    var params = {
                         subscribe: true,
                         callback: self.location.href
-                    });
-                    self.location.href = this.iframe.src + '?' + params;
+                    };
+                    if (this._getParam('templateEndPoint')) {
+                        fetch(this._getParam('templateEndPoint')).then(function(response) {
+                            response.text().then(function(html){
+                                this._cleanAndPrepareHtml(html).then(function(newHtml) {
+                                    this._setParams({
+                                        templateContent: newHtml
+                                    });
+                                    this.iframe.contentWindow.postMessage({
+                                        method: 'setParams',
+                                        params: {
+                                            templateContent: this._getParam('templateContent')
+                                        }
+                                    }, '*');
+                                    //self.location.href = this.iframe.src + '?' + this._encodeParams(params);
+                                }.bind(this), function(e){
+                                   console.error(e);
+                                });
+                            }.bind(this));
+                        }.bind(this), function(e) {
+                            console.error('Template target error!', e);
+                        });
+                    } else {
+                        self.location.href = this.iframe.src + '?' + this._encodeParams(params);
+                    }
                     break;
                 case 'subscribed':
                     this._setParams({
@@ -297,7 +390,7 @@
             this.iframe.id = 'smartpush-webpush-iframe';
             this.iframe.style.display = 'none';
             this.iframe.src = (this._getParam('setupEndPoint') ? this._getParam('setupEndPoint') : '') + '/webpush.html';
-            this.iframe.onload = function(e) {
+            this.iframe.onload = function() {
                 if (!loaded) {
                     loaded = true;
                     this.iframe.contentWindow.postMessage({
@@ -628,9 +721,9 @@
     };
 
     self.Smartpush = {
-        create: function(setup, url) {
+        create: function(setup) {
 
-            if (!setup.devid) {
+            if (!setup.devid || setup.devid == 'DEVID') {
                 console.error('No "devid" was NOT set. See the documentation');
                 return;
             }
@@ -641,17 +734,24 @@
 
             var instance = Object.create(_webpush);
 
-            if (url) {
-                if (url.indexOf('https') == -1) {
-                    console.error('The URL informed ('+url+') is not secure. Please, use https');
+            var sslUrl = setup.sslUrl;
+            if (sslUrl) {
+                if (sslUrl.indexOf('https') == -1) {
+                    console.error('The URL informed ('+sslUrl+') is not secure. Please, use https');
                     return;
                 }
-
-                if (url.slice(-1) == '/') {
-                    url = url.substring(0, url.length - 1);
+                if (sslUrl.slice(-1) == '/') {
+                    sslUrl = sslUrl.substring(0, sslUrl.length - 1);
                 }
+                instance._setParams({setupEndPoint: sslUrl});
+            }
 
-                instance.params.setupEndPoint = url;
+            var templateUrl = setup.templateUrl;
+            if (templateUrl) {
+                if (templateUrl.slice(-1) == '/') {
+                    templateUrl = templateUrl.substring(0, templateUrl.length - 1);
+                }
+                instance._setParams({templateEndPoint: templateUrl});
             }
 
             var platform = instance._getPlatform();
@@ -671,7 +771,7 @@
                     if (setup.appid.chrome === false) {
                         console.warn('Chrome Disabled');
                         return;
-                    } else if (!setup.appid.chrome) {
+                    } else if (!setup.appid.chrome || setup.appid.chrome == 'APPID') {
                         console.error('No "appid" found for chrome. See the documentation');
                         return;
                     }
@@ -681,7 +781,7 @@
                     if (setup.appid.safari === false) {
                         console.warn('Safari Disabled');
                         return;
-                    } else if (!setup.appid.safari) {
+                    } else if (!setup.appid.safari || setup.appid.chrome == 'APPID') {
                         console.error('No "appid" found for safari. See the documentation');
                         return;
                     }
@@ -691,8 +791,8 @@
                     if (setup.appid.firefox === false) {
                         console.warn('Safari Disabled');
                         return;
-                    } else if (!setup.appid.firefox) {
-                        console.error('No "appid" found for safari. See the documentation');
+                    } else if (!setup.appid.firefox || setup.appid.chrome == 'APPID') {
+                        console.error('No "appid" found for firefox. See the documentation');
                         return;
                     }
                     appid = setup.appid.firefox;

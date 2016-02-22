@@ -1,27 +1,25 @@
 # Smartpush
 ---
-## Web Push SDK Documentation 1.1
+## Web Push SDK Documentation 1.2
 This lib activates the off-site web push service on your Web Browser. Remember that you must have a secure environment to use web push notifications. The SDK only works on ``https://`` connections.
 
 ##### I dont have a ssl certificate!
 \- No problem! You can request us to deploy a custom CDN with a SSL certificate. After everything is set up, you will receive a URL target that can be use to create a CNAME record on your DNS. Example: ``` webpush.yourdomain.com => xxxxxxx.cloudfront.net ```.
 
-    Important: In this case, the use of the third parameter on the SDK create method is required for webpush work well. See more information about using a centralized subdomains above.
+In this case, the use of `sslUrl` on the SDK **create** method is required for webpush work well. See more information about using a centralized subdomains bellow.
 
 ### What does the project do?
 This project integrates off-site webpush notification system with **Smartpush API**, for browsers that supports this feature.
 
 ### How to install it?
 
-**Important**, if you dont have a https connection and you choose to use owr infra-structure, you can skip the installation. The following files are already present on owr CDN.
+**Important:** if you dont have a https connection and you choose to use owr infra-structure, you can skip the Download and Installation process descripted bellow, because the following 4 files are already present on owr CDN.
 
-Download "Webpush Installation Files" (*.zip) from **https://cdn.getmo.com.br/webpush-pack-1.1.zip** and install the following files in the root of your website:
+Download "Webpush Installation Files" (*.zip) from [https://cdn.getmo.com.br/webpush-pack-1.2.zip](https://cdn.getmo.com.br/webpush-pack-1.2.zip) and install the following files in the root of your website:
 - webpush.html
 - webpush-chrome-manifest.json
 - webpush-service-worker.js
 - webpush-image.png (customize the image before installation)
-
-> When you are logged in, click on **Docs & SDK** section and search for the CHROME box, then click on **Chrome SDK** button to download the pack.
 
 After that, you load the SDK's current version in your html page from one of this two sources: 
 - ``http://cdn.getmo.com.br/webpush-1.1.min.js``
@@ -58,8 +56,10 @@ var webpush = window.Smartpush.create({
 });
 ```
 
-When you need to centralize subdomains, you can pass a second parameter with the secure URL, like so:
-
+When you need to centralize subdomains, or when you dont have a have a secure connection, you can pass a string with a absolute https URL, named `sslUrl`.
+> It is recommended to use the `templateUrl` property with `sslUrl`, to customize and prevent the white page when the browser *Ask* to send Web Notification.
+ 
+Example:
 ```javascript
 var webpush = window.Smartpush.create({
     devid: 'DEVID',
@@ -67,8 +67,10 @@ var webpush = window.Smartpush.create({
         chrome: 'APPID',
         safari: 'APPID',
         firefox: 'APPID'
-    }
-}, 'https://webpush.getmo.com.br');
+    },
+    sslUrl: 'https://...', // optional
+    templateUrl: '(http|https)://...', // optional
+});
 ```
 
 If "webpush" variable returns ``false``, then probably your Browser don't support all features to run the webpush service. You can test it:

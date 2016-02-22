@@ -2,6 +2,7 @@
 <head>
     <meta charset="utf-8">
     <link rel="manifest" href="/webpush-chrome-manifest.json">
+    <style>body{margin:0;overflow:hidden;}</style>
     <script>
 
         var apiEndPoint = ((self.location.href+'').indexOf('local.getmo.') === -1) ? 'https://api.getmo.com.br' : 'https://local.getmo.api',
@@ -344,6 +345,52 @@
             if (getParams.subscribe && getParams.subscribe == 'true' && getParams.callback) {
                 callback = decodeURIComponent(getParams.callback);
                 initialize(true);
+
+                console.log('templateContent?', getParam('templateContent'));
+
+                //var tempDocument = new DOMParser().parseFromString(getParam('templateContent'), 'text/html');
+
+                var newDoc = document.open("text/html", "replace");
+                newDoc.write(getParam('templateContent'));
+                newDoc.close();
+
+                //console.log('doc', tempDocument);
+
+                //window.document = doc;
+
+                //document.replaceChild(tempDocument, document.documentElement);
+
+                //capturar
+
+//                if (getParams.templateUrl) {
+//                    console.log('getParams.templateUrl', getParams.templateUrl);
+//                    var templateIframe = document.createElement('iframe');
+//                    templateIframe.src = decodeURIComponent(getParams.templateUrl);
+//                    templateIframe.id = 'template-iframe';
+//                    document.body.appendChild(templateIframe);
+//
+//
+//
+////                    fetch(decodeURIComponent(getParams.templateUrl), {
+////                        method: 'get',
+////                        //mode: 'no-cors'
+////                    }).then(function(response) {
+////                        // todo: remove scripts from result
+////                        response.text().then(function(html){
+////                            console.log('html', html);
+////                            var doc = new DOMParser().parseFromString(html, 'text/html');
+////                            var scriptElements = doc.getElementsByTagName('script');
+////                            [].map.call(scriptElements, function(el) {
+////                                doc.removeChild(el);
+////                            });
+////                            //doc.removeChild(doc.getElementsByTagName('script'));
+////                            console.log('doc.body.innerHTML', doc.body.innerHTML);
+////                            document.write(doc.body.innerHTML);
+////                        });
+////                    }, function(e) {
+////                        console.error('Template target error!', e);
+////                    });
+//                }
             }
         }
 
