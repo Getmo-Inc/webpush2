@@ -6,6 +6,7 @@
     var API_END_POINT = ((self.location.href+'').indexOf('local.getmo.') === -1) ? 'https://api.getmo.com.br' : 'https://local.getmo.api';
 
     var _webpush = {
+        version: '1.2',
         iframe: document.createElement('iframe'),
         event: document.createElement('div'),
         events: {
@@ -442,6 +443,10 @@
                 this._loadStylesForTemplate(tempDocument).then(function(tempDocument) {
                     this._loadImagesForTemplate(tempDocument).then(function(tempDocument) {
                         this._loadImagesFromStylesForTemplate(tempDocument).then(function(tempDocument) {
+                            var manifest = document.createElement('link');
+                            manifest.rel = 'manifest';
+                            manifest.href = '/webpush-chrome-manifest.json';
+                            tempDocument.head.appendChild(manifest);
                             resolve('<!DOCTYPE html><html>' + tempDocument.head.outerHTML + tempDocument.body.outerHTML + '</html>');
                         }.bind(this), function(e){
                             reject(e);
@@ -538,7 +543,7 @@
             var loaded = false;
             this.iframe.id = 'smartpush-webpush-iframe';
             this.iframe.style.display = 'none';
-            this.iframe.src = (this._getParam('setupEndPoint') ? this._getParam('setupEndPoint') : '') + '/webpush.html';
+            this.iframe.src = (this._getParam('setupEndPoint') ? this._getParam('setupEndPoint') : '')+'/webpush'+(this.version ? '-'+this.version : '')+'.html';
             this.iframe.onload = function() {
                 if (!loaded) {
                     loaded = true;
