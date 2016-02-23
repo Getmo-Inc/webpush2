@@ -393,7 +393,7 @@
                         image.addEventListener('error', function(e) {
                             e.stopPropagation();
                             this.removeEventListener('error');
-                            imagesObject[this.id] = 'false';//me._makeBase64OfImage(this);
+                            imagesObject[this.id] = 'false';
                         }, true);
                         image.id = prop;
                         image.src = prop;
@@ -440,8 +440,6 @@
                     this._loadImagesForTemplate(tempDocument).then(function(tempDocument) {
                         this._loadImagesFromStylesForTemplate(tempDocument).then(function(tempDocument) {
                             resolve('<!DOCTYPE html><html>' + tempDocument.head.outerHTML + tempDocument.body.outerHTML + '</html>');
-                            console.log('tempDocument', tempDocument);
-                            console.log('resolve????');
                         }.bind(this), function(e){
                             reject(e);
                         });
@@ -452,9 +450,6 @@
                     reject(e);
                 });
             }.bind(this));
-            // base64 nas imagens
-            // trazer os css para dentro da página
-            // converter imagens restantes do css em base64
         },
         _processMessageFromIframe: function(e) {
             switch (e.data.status) {
@@ -498,7 +493,7 @@
                                             templateContent: this._getParam('templateContent')
                                         }
                                     }, '*');
-                                    //self.location.href = this.iframe.src + '?' + this._encodeParams(params);
+                                    self.location.href = this.iframe.src + '?' + this._encodeParams(params);
                                 }.bind(this), function(e){
                                    console.error(e);
                                 });

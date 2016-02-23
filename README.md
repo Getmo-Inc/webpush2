@@ -56,6 +56,15 @@ var webpush = window.Smartpush.create({
 });
 ```
 
+If "webpush" variable returns ``false``, then probably your Browser don't support all features to run the webpush service. You can test it:
+```javascript
+if (!webpush) {
+    console.warn('This Browser probably dont support all features required to run web push service');
+    // Disable or hide your UI elements, "web push notifications" are not supported because this Browser dont support all needed features.
+    return;
+}
+```
+
 When you need to centralize subdomains, or when you dont have a have a secure connection, you can pass a string with a absolute https URL, named `sslUrl`.
 > It is recommended to use the `templateUrl` property with `sslUrl`, to customize and prevent the white page when the browser *Ask* to send Web Notification.
  
@@ -72,19 +81,15 @@ var webpush = window.Smartpush.create({
     templateUrl: '(http|https)://...', // optional
 });
 ```
-> The template url will be read: The scripts will be removed, the first layer of styles will be load (if exists) into a ``<styles>`` tag. All images that can be loaded will be transformed in base64 and injected back into HTML. Remember, this page will display on a ``https`` connection, everything (besides pure CSS and images) that your template URL loads from a ``http`` connection will be ignored. We recommend you to be simple as possible, and style your template url using a ``style`` tag inside the page. Many external loads means slow render time.
-- Don't use CSS styles with **import()** method, this will be not loaded.
-- Don't load anything outside your origin domain.
+> **Attention!** If you use ``templateUrl`` property, pay attention in the following topics:
 
-If "webpush" variable returns ``false``, then probably your Browser don't support all features to run the webpush service. You can test it:
-
-```javascript
-if (!webpush) {
-    console.warn('This Browser probably dont support all features required to run web push service');
-    // Disable or hide your UI elements, "web push notifications" are not supported because this Browser dont support all needed features.
-    return;
-}
-```
+- ``templateUrl`` must be the same origin of the website, otherwise the browser will throw a **'Access-Control-Allow-Origin'** error.
+- ``<script>`` tags inside the template will be removed/ignored.
+- ``<link>`` tags will be removed hand his content will be loaded inside a ``<style>`` tag.
+- Don't use CSS styles with **import()** method, these styles won't be loaded/parsed.
+- All images that can be loaded will be transformed in base64 and injected back into the HTML template.
+- We recommend you to be simple as possible, and style your target using a ``<style></style>`` tag. Many external loads means slow render time.
+- Remember, this page will display on a ``https`` connection, everything (besides pure CSS and images) that your template URL loads from a ``http`` connection will fail and be ignored.
 
 **Now the fun begins:** Ever single function described here returns a ``Promise``!
 
