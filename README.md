@@ -85,7 +85,7 @@ var webpush = window.Smartpush.create({
 
 - ``templateUrl`` must be the same origin of the website, otherwise the browser will throw a **'Access-Control-Allow-Origin'** error.
 - ``<script>`` tags inside the template will be removed/ignored.
-- ``<link>`` tags will be removed hand his content will be loaded inside a ``<style>`` tag.
+- ``<link rel="stylesheet">`` tags will be removed hand his content will be loaded inside a ``<style>`` tag.
 - Don't use CSS styles with **import()** method, these styles won't be loaded/parsed.
 - All images that can be loaded will be transformed in base64 and injected back into the HTML template.
 - We recommend you to be simple as possible, and style your target using a ``<style></style>`` tag. Many external loads means slow render time.

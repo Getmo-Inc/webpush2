@@ -251,6 +251,9 @@
                 interval = null;
             return new Promise(function(resolve) {
                 for (var i = 0; i < tempCss.length; i++) {
+                    if (tempCss[i].rel != 'stylesheet') {
+                        continue;
+                    }
                     var href = tempCss[i].href;
                     if (href) {
                         if (href.indexOf('http') == -1) {
