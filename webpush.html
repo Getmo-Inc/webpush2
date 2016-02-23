@@ -346,9 +346,12 @@
                 callback = decodeURIComponent(getParams.callback);
                 initialize(true);
 
-                var newDoc = document.open('text/html', 'replace');
-                newDoc.write(getParam('templateContent'));
-                newDoc.close();
+                var template = getParam('templateContent');
+                if (template) {
+                    var newDoc = document.open('text/html', 'replace');
+                    newDoc.write(template);
+                    newDoc.close();
+                }
             }
         }
 
