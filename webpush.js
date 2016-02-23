@@ -243,64 +243,215 @@
             ctx.drawImage(img, 0, 0);
             return canvas.toDataURL("image/png");
         },
-        _cleanAndPrepareHtml: function(html) {
-            var me = this;
-            return new Promise(function(resolve, reject) {
-
-                var tempDocument = new DOMParser().parseFromString(html.replace(/<script.*?>((\n*)?.*?(\n*)?)*?<\/script>/igm, ''), 'text/html');
-
-                var tempImages = tempDocument.getElementsByTagName('img');
-                var base64ImagesArray = [];
-                for (var i = 0; i < tempImages.length; i++) {
-                    var image = new Image();
-                    image.addEventListener('load', function(e) {
-                        this.removeEventListener('load');
-                        e.stopPropagation();
-                        base64ImagesArray.push(me._makeBase64OfImage(this));
-                    }, true);
-                    image.src = tempImages[i].src;
-                }
-
-                var tempCss = tempDocument.getElementsByTagName('link');
-                var cssArray = [];
+        _loadStylesForTemplate: function(tempDocument) {
+            var cssArray = [],
+                templateUrl = this._getParam('templateEndPoint'),
+                tempCss = tempDocument.getElementsByTagName('link'),
+                counter = 0,
+                interval = null;
+            return new Promise(function(resolve) {
                 for (var i = 0; i < tempCss.length; i++) {
                     var href = tempCss[i].href;
                     if (href) {
+                        if (href.indexOf('http') == -1) {
+                            if (href[0] == '/') {
+                                href = templateUrl.replace(self.location.pathname, '') + href;
+                            } else {
+                                href = templateUrl + '/' + href;
+                            }
+                        }
                         fetch(href).then(function(response) {
+                            var responseUrl = response.url;
                             response.text().then(function(result) {
-
-                                var res = replace.(/url\s?\(["']?(.*)([a-zA-Z0-9\/\.\-\+_':;,=]+\.(png|jpg|gif|jpeg|tiff){1})["']?\)/igm, '');
-
+                                var prefixUrl = '';
+                                var responseUrlMatch = responseUrl.match(/(.*\/)/ig);
+                                if (responseUrlMatch && responseUrlMatch[0]) {
+                                    prefixUrl = responseUrlMatch[0];
+                                }
+                                var urlMatch = result.match(/url\s?\((["']?)(.+\.(png|jpg|gif|jpeg){1})\1?\)/ig);
+                                if (urlMatch) {
+                                    for (var i = 0; i < urlMatch.length; i++) {
+                                        var value = /url\s?\((["']?)(.+\.(png|jpg|gif|jpeg){1})\1?\)/ig.exec(urlMatch[i]);
+                                        if (prefixUrl && value && value[2]) {
+                                            var cssUrl = '';
+                                            if (value[2].indexOf('http') == -1) {
+                                                if (value[2][0] == '/') {
+                                                    cssUrl = templateUrl.replace(self.location.pathname, '') + value[2];
+                                                } else {
+                                                    cssUrl = prefixUrl + value[2];
+                                                }
+                                            } else {
+                                                cssUrl = value[2];
+                                            }
+                                            result = result.replace(urlMatch[i], 'url(\'' + cssUrl + '\')');
+                                        }
+                                    }
+                                }
                                 cssArray.push(result);
-                            }.bind(this));
-                        }.bind(this));
+                            }.bind(this), function() {
+                                cssArray.push('');
+                            });
+                        }.bind(this), function() {
+                            cssArray.push('');
+                        });
                     } else {
                         cssArray.push('');
                     }
                 }
-
-                var interval = setInterval(function(){
-                    if (base64ImagesArray.length >= tempImages.length && cssArray.length >= tempCss.length) {
-
+                interval = setInterval(function(){
+                    if (cssArray.length >= tempCss.length) {
+                        var style = document.createElement("style");
+                        style.innerHTML = cssArray.join(' ');
+                        tempDocument.head.appendChild(style);
+                        while (tempCss[0]) {
+                            tempCss[0].parentNode.removeChild(tempCss[0]);
+                        }
+                        clearInterval(interval);
+                        resolve(tempDocument);
+                    } else {
+                        if (counter > 150) {
+                            console.error(cssArray, tempCss);
+                            clearInterval(interval);
+                            resolve(tempDocument);
+                        }
+                        counter++;
+                    }
+                }.bind(this), 50);
+            }.bind(this));
+        },
+        _loadImagesForTemplate: function(tempDocument) {
+            var me = this,
+                base64ImagesArray = [],
+                tempImages = tempDocument.getElementsByTagName('img'),
+                counter = 0,
+                interval = null;
+            return new Promise(function(resolve) {
+                for (var i = 0; i < tempImages.length; i++) {
+                    var image = new Image();
+                    image.addEventListener('load', function(e) {
+                        e.stopPropagation();
+                        this.removeEventListener('load');
+                        base64ImagesArray[this.id] = me._makeBase64OfImage(this);
+                    }, true);
+                    image.id = i;
+                    image.src = tempImages[i].src;
+                }
+                interval = setInterval(function(){
+                    if (base64ImagesArray.length >= tempImages.length) {
                         for (var i = 0; i < tempImages.length; i++) {
                             tempImages[i].src = base64ImagesArray[i];
                         }
-
-                        var style = document.createElement("style");
-                        console.log(cssArray.join(' '));
-                        style.innerHTML = cssArray.join(' ');
-                        tempDocument.head.appendChild(style);
-                        while (tempCss[0]) tempCss[0].parentNode.removeChild(tempCss[0]);
-
-
                         clearInterval(interval);
-                        //resolve();
-
-                        console.log('tempDocument', tempDocument);
+                        resolve(tempDocument);
+                    } else {
+                        if (counter > 150) {
+                            console.error(base64ImagesArray, tempImages);
+                            clearInterval(interval);
+                            resolve(tempDocument);
+                        }
+                        counter++;
                     }
-                }.bind(this), 150);
+                }.bind(this), 50);
             }.bind(this));
-
+        },
+        _loadImagesFromStylesForTemplate: function(tempDocument) {
+            var me = this,
+                imagesObject = {},
+                templateUrl = this._getParam('templateEndPoint'),
+                html = tempDocument.head.outerHTML + tempDocument.body.outerHTML,
+                urlMatch = html.match(/url\s?\((["']?)(.+\.(png|jpg|gif|jpeg){1})\1?\)/ig),
+                counter = 0,
+                interval = null;
+            return new Promise(function(resolve) {
+                if (urlMatch) {
+                    for (var i = 0; i < urlMatch.length; i++) {
+                        var value = /url\s?\((["']?)(.+\.(png|jpg|gif|jpeg){1})\1?\)/ig.exec(urlMatch[i]);
+                        if (value && value[2]) {
+                            var cssUrl = '';
+                            if (value[2].indexOf('http') == -1) {
+                                if (value[2][0] == '/') {
+                                    cssUrl = templateUrl.replace(self.location.pathname, '') + value[2];
+                                } else {
+                                    cssUrl = templateUrl + '/' + value[2];
+                                }
+                            } else {
+                                cssUrl = value[2];
+                            }
+                            imagesObject[cssUrl] = '';
+                        }
+                    }
+                    for (var prop in imagesObject) {
+                        if(!imagesObject.hasOwnProperty(prop)) {
+                            continue;
+                        }
+                        var image = new Image();
+                        image.addEventListener('load', function(e) {
+                            e.stopPropagation();
+                            this.removeEventListener('load');
+                            imagesObject[this.id] = me._makeBase64OfImage(this);
+                        }, true);
+                        image.addEventListener('error', function(e) {
+                            e.stopPropagation();
+                            this.removeEventListener('error');
+                            imagesObject[this.id] = 'false';//me._makeBase64OfImage(this);
+                        }, true);
+                        image.id = prop;
+                        image.src = prop;
+                    }
+                    interval = setInterval(function(){
+                        var loaded = true;
+                        for (var prop in imagesObject) {
+                            if(!imagesObject.hasOwnProperty(prop)) {
+                                continue;
+                            }
+                            if (!imagesObject[prop]) {
+                                loaded = false;
+                            }
+                        }
+                        if (loaded) {
+                            for (var prop in imagesObject) {
+                                if(!imagesObject.hasOwnProperty(prop)) {
+                                    continue;
+                                }
+                                if (imagesObject[prop] != 'false') {
+                                    html = html.replace(prop, imagesObject[prop]);
+                                }
+                            }
+                            clearInterval(interval);
+                            resolve(new DOMParser().parseFromString('<!DOCTYPE html>'+html, 'text/html'));
+                        } else {
+                            if (counter > 100) {
+                                console.error(imagesObject);
+                                clearInterval(interval);
+                                resolve(tempDocument);
+                            }
+                            counter++;
+                        }
+                    }, 50);
+                } else {
+                    resolve(tempDocument);
+                }
+            }.bind(this));
+        },
+        _cleanAndPrepareHtml: function(html) {
+            return new Promise(function(resolve, reject) {
+                var tempDocument = new DOMParser().parseFromString(html.replace(/<script.*?>((\n*)?.*?(\n*)?)*?<\/script>/igm, ''), 'text/html');
+                this._loadStylesForTemplate(tempDocument).then(function(tempDocument) {
+                    this._loadImagesForTemplate(tempDocument).then(function(tempDocument) {
+                        this._loadImagesFromStylesForTemplate(tempDocument).then(function(tempDocument) {
+                            resolve('<!DOCTYPE html><html>' + tempDocument.head.outerHTML + tempDocument.body.outerHTML + '</html>');
+                            console.log('tempDocument', tempDocument);
+                            console.log('resolve????');
+                        }.bind(this), function(e){
+                            reject(e);
+                        });
+                    }.bind(this), function(e){
+                        reject(e);
+                    });
+                }.bind(this), function(e){
+                    reject(e);
+                });
+            }.bind(this));
             // base64 nas imagens
             // trazer os css para dentro da página
             // converter imagens restantes do css em base64

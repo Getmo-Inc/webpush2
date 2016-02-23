@@ -72,6 +72,9 @@ var webpush = window.Smartpush.create({
     templateUrl: '(http|https)://...', // optional
 });
 ```
+> The template url will be read: The scripts will be removed, the first layer of styles will be load (if exists) into a ``<styles>`` tag. All images that can be loaded will be transformed in base64 and injected back into HTML. Remember, this page will display on a ``https`` connection, everything (besides pure CSS and images) that your template URL loads from a ``http`` connection will be ignored. We recommend you to be simple as possible, and style your template url using a ``style`` tag inside the page. Many external loads means slow render time.
+- Don't use CSS styles with **import()** method, this will be not loaded.
+- Don't load anything outside your origin domain.
 
 If "webpush" variable returns ``false``, then probably your Browser don't support all features to run the webpush service. You can test it:
 
