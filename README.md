@@ -90,6 +90,7 @@ var webpush = window.Smartpush.create({
 - All images that can be loaded will be transformed in base64 and injected back into the HTML template.
 - We recommend you to be simple as possible, and style your target using a ``<style></style>`` tag. Many external loads means slow render time.
 - Remember, this page will display on a ``https`` connection, everything (besides pure CSS and images) that your template URL loads from a ``http`` connection will fail and be ignored.
+- **Important**: The compiled page must be lighter than 4Mb (include: images, styles, html).
 
 **Now the fun begins:** Ever single function described here returns a ``Promise``!
 
