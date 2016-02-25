@@ -7,7 +7,7 @@
 
     var _webpush = {
         debug: true,
-        version: '1.2.2',
+        version: '1.2.2-nibiru',
         iframe: document.createElement('iframe'),
         event: document.createElement('div'),
         events: {
@@ -474,10 +474,9 @@
             }.bind(this));
         },
         _processMessageFromIframe: function(e) {
-            console.log('_processMessageFromIframe()', e);
-            console.log('e.data.status', e.data.status);
             switch (e.data.status) {
                 case 'ready':
+                case 'check-ready':
                 case 'status-false-checked':
                 case 'status-denied-checked':
                 case 'subscribed-error':
@@ -561,7 +560,6 @@
             this.iframe.style.display = 'none';
             this.iframe.src = (this._getParam('setupEndPoint') ? this._getParam('setupEndPoint') : '')+'/webpush'+(this.version ? '-'+this.version : '')+'.html';
             this.iframe.onload = function() {
-                console.log('test', method);
                 if (!loaded) {
                     loaded = true;
                     this.iframe.contentWindow.postMessage({
@@ -599,17 +597,16 @@
             }
         },
         _setup: function(method) {
-            console.log('_setup()');
             return new Promise(function(resolve, reject) {
                 if (this._getParam('platform') == 'CHROME' || this._getParam('platform') == 'FIREFOX') {
-
-                    console.log('platform', this._getParam('platform'));
-
                     if (this.control.hasSetup === true) {
                         return resolve();
                     }
                     this.events.on('ready', function() {
                         this.control.hasSetup = true;
+                        resolve();
+                    }.bind(this));
+                    this.events.on('check-ready', function() {
                         resolve();
                     }.bind(this));
                     this.events.on('setup-error', function() {
@@ -621,8 +618,6 @@
                     });
                     this._addIframeEvents();
                     this._addIframe(method);
-
-                    console.log('_setup() -> iframe added!!')
 
                 } else if (this._getParam('platform') == 'SAFARI') {
 
@@ -659,7 +654,6 @@
             }.bind(this));
         },
         checkStatus: function() {
-            console.log('checkStatus()');
             return new Promise(function(resolve, reject) {
                 this._setup().then(function() {
                     if (this._getParam('platform') == 'CHROME' || this._getParam('platform') == 'FIREFOX') {
@@ -679,7 +673,6 @@
                             }
                             reject('default');
                         }.bind(this));
-                        console.log('pre postMessage checkSubscriptionStatus');
                         this.iframe.contentWindow.postMessage({
                             method: 'checkSubscriptionStatus'
                         }, '*');
