@@ -7,7 +7,7 @@
 
     var _webpush = {
         debug: true,
-        version: '1.2.2-nibiru',
+        version: '1.2.3',
         iframe: document.createElement('iframe'),
         event: document.createElement('div'),
         events: {
