@@ -7,7 +7,7 @@
 
     var _webpush = {
         debug: true,
-        version: '1.2.1',
+        version: '1.2.2',
         iframe: document.createElement('iframe'),
         event: document.createElement('div'),
         events: {
@@ -474,6 +474,8 @@
             }.bind(this));
         },
         _processMessageFromIframe: function(e) {
+            console.log('_processMessageFromIframe()', e);
+            console.log('e.data.status', e.data.status);
             switch (e.data.status) {
                 case 'ready':
                 case 'status-false-checked':
@@ -553,16 +555,17 @@
                     console.error('default: e.data.status = ' + e.data.status);
             }
         },
-        _addIframe: function () {
+        _addIframe: function (method) {
             var loaded = false;
             this.iframe.id = 'smartpush-webpush-iframe';
             this.iframe.style.display = 'none';
             this.iframe.src = (this._getParam('setupEndPoint') ? this._getParam('setupEndPoint') : '')+'/webpush'+(this.version ? '-'+this.version : '')+'.html';
             this.iframe.onload = function() {
+                console.log('test', method);
                 if (!loaded) {
                     loaded = true;
                     this.iframe.contentWindow.postMessage({
-                        method: 'initialize',
+                        method: method ? method : '',
                         params: {
                             devid: this._getParam('devid'),
                             appid: this._getParam('appid'),
@@ -572,6 +575,9 @@
                     }, '*');
                 }
             }.bind(this);
+            this.iframe.onerror = function(e) {
+                console.error(e);
+            };
             document.body.appendChild(this.iframe);
         },
         _addIframeEvents: function() {
@@ -592,9 +598,13 @@
                 this.control.eventForPostMassageIsListening = true;
             }
         },
-        _setup: function() {
+        _setup: function(method) {
+            console.log('_setup()');
             return new Promise(function(resolve, reject) {
                 if (this._getParam('platform') == 'CHROME' || this._getParam('platform') == 'FIREFOX') {
+
+                    console.log('platform', this._getParam('platform'));
+
                     if (this.control.hasSetup === true) {
                         return resolve();
                     }
@@ -610,7 +620,9 @@
                         reject('ssl-error');
                     });
                     this._addIframeEvents();
-                    this._addIframe();
+                    this._addIframe(method);
+
+                    console.log('_setup() -> iframe added!!')
 
                 } else if (this._getParam('platform') == 'SAFARI') {
 
@@ -647,6 +659,7 @@
             }.bind(this));
         },
         checkStatus: function() {
+            console.log('checkStatus()');
             return new Promise(function(resolve, reject) {
                 this._setup().then(function() {
                     if (this._getParam('platform') == 'CHROME' || this._getParam('platform') == 'FIREFOX') {
@@ -666,6 +679,7 @@
                             }
                             reject('default');
                         }.bind(this));
+                        console.log('pre postMessage checkSubscriptionStatus');
                         this.iframe.contentWindow.postMessage({
                             method: 'checkSubscriptionStatus'
                         }, '*');
@@ -706,7 +720,7 @@
         },
         subscribe: function () {
             return new Promise(function(resolve, reject) {
-                this._setup().then(function(){
+                this._setup('initializeServiceWorker').then(function(){
                     if (this._getParam('platform') == 'CHROME' || this._getParam('platform') == 'FIREFOX') {
                         this.events.on('subscribed', function() {
                             resolve(this);

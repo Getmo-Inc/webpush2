@@ -75,25 +75,27 @@
 
         function processMessageFromParent(e) {
             if (e.data && typeof(e.data) === 'object') {
+                if (e.data.params && typeof(e.data.params) === 'object') {
+                    setParams(e.data.params);
+                }
                 switch(e.data.method) {
-                    case 'initialize':
-                        setParams(e.data.params);
+                    case 'initializeServiceWorker':
                         if (getParam('platform') == 'CHROME' || getParam('platform') == 'FIREFOX') {
                             if (!getParam('setupEndPoint')) {
                                 sendMessageToServiceWorker({test: true}).then(function(){
                                     if (getParam('hwid') && getParam('regid')) {
                                         sendMessageToParent({status: 'ready'});
                                     } else {
-                                        initialize();
+                                        initializeServiceWorker();
                                     }
                                 }, function() {
-                                    initialize();
+                                    initializeServiceWorker();
                                 });
                             } else {
                                 if (getParam('hwid') && getParam('regid')) {
                                     sendMessageToParent({status: 'ready'});
                                 } else {
-                                    initialize();
+                                    initializeServiceWorker();
                                 }
                             }
                         } else if (getParam('platform') == 'SAFARI') {
@@ -114,11 +116,13 @@
                             params: JSON.parse(localStorage.getItem('smartpush_params'))
                         });
                         break;
+                    default:
+                        sendMessageToParent({status: 'ready'});
                 }
             }
         }
 
-        function initialize(autoSubscribe) {
+        function initializeServiceWorker(autoSubscribe) {
             navigator.serviceWorker.register('/webpush-service-worker.js', {scope: '/'}).then(function() {
                 sendMessageToServiceWorker({test: true}).then(function(){
                     if (autoSubscribe && autoSubscribe === true && parent === window) {
@@ -180,33 +184,39 @@
                     sendMessageToParent({status: 'status-false-checked'});
                     break;
                 case 'granted':
-                    sendMessageToServiceWorker({test: true}).then(function(){
-                        navigator.serviceWorker.ready.then(function(registration) {
-                            registration.pushManager.getSubscription().then(function(subscription) {
-                                if (!subscription) {
+                    var hwid = getParam('hwid'),
+                        regid = getParam('regid');
+
+                    if (hwid && regid) {
+                        sendMessageToParent({status: 'status-true-checked', hwid: hwid, regid: regid});
+                    } else {
+                        sendMessageToServiceWorker({test: true}).then(function(){
+                            navigator.serviceWorker.ready.then(function(registration) {
+                                registration.pushManager.getSubscription().then(function(subscription) {
+                                    if (!subscription) {
+                                        sendMessageToParent({status: 'status-false-checked'});
+                                        return;
+                                    }
+                                    var data = getDataFromSubscription(subscription);
+                                    if (hwid) {
+                                        sendMessageToParent({status: 'status-true-checked', hwid: hwid, regid: data.regid});
+                                    } else {
+                                        console.warn('You are not fully registered yet.');
+                                        sendMessageToParent({status: 'status-false-checked'});
+                                    }
+                                }, function() {
+                                    console.error('Cannot subscribe on GCM at the moment, please try again in 30 seconds.');
                                     sendMessageToParent({status: 'status-false-checked'});
-                                    return;
-                                }
-                                var hwid = getParam('hwid'),
-                                        data = getDataFromSubscription(subscription);
-                                if (hwid) {
-                                    sendMessageToParent({status: 'status-true-checked', hwid: hwid, regid: data.regid});
-                                } else {
-                                    console.warn('You are not fully registered yet.');
-                                    sendMessageToParent({status: 'status-false-checked'});
-                                }
-                            }, function() {
-                                console.error('Cannot subscribe on GCM at the moment, please try again in 30 seconds.');
+                                });
+                            }, function(){
+                                console.error('Service Worker Cannot be ready');
                                 sendMessageToParent({status: 'status-false-checked'});
                             });
                         }, function(){
-                            console.error('Service Worker Cannot be ready');
-                            sendMessageToParent({status: 'status-false-checked'});
+                            console.warn('Cannot access Service Worker');
+                            sendMessageToParent({status: 'status-sm-unreachable'});
                         });
-                    }, function(){
-                        console.warn('Cannot access Service Worker');
-                        sendMessageToParent({status: 'status-sm-unreachable'});
-                    });
+                    }
                     break;
             }
         }
@@ -344,7 +354,7 @@
 
             if (getParams.subscribe && getParams.subscribe == 'true' && getParams.callback) {
                 callback = decodeURIComponent(getParams.callback);
-                initialize(true);
+                initializeServiceWorker(true);
 
                 var template = getParam('templateContent');
                 if (template) {
