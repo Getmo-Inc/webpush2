@@ -478,7 +478,6 @@
             }.bind(this));
         },
         _processMessageFromIframe: function(e) {
-            console.log('e.data.status', e.data.status);
             switch (e.data.status) {
                 case 'ready':
                 case 'check-ready':
@@ -609,7 +608,6 @@
             }
         },
         _setup: function(method) {
-            console.log('_setup', method);
             return new Promise(function(resolve, reject) {
                 if (this._getParam('platform') == 'CHROME' || this._getParam('platform') == 'FIREFOX') {
                     if (this.control.hasSetup === true) {
