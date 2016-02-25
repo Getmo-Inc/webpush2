@@ -7,7 +7,7 @@
 
     var _webpush = {
         debug: true,
-        version: '1.2.3',
+        version: '1.2.4',
         iframe: document.createElement('iframe'),
         event: document.createElement('div'),
         events: {
@@ -33,6 +33,10 @@
             }
         },
         control: {
+            iframe: {
+                isLoading: false,
+                hasLoaded: false
+            },
             hasSetup: false,
             eventForPostMassageIsListening: false,
             register: {
@@ -194,7 +198,7 @@
             console.error('Parameters cannot be parsed. Use "object" or a url encoded "string". Unknown type...', typeof(data));
             return false;
         },
-        _ajax: function (url, data, method, type) {
+        _ajax: function (url, data, method) {
             if (!method) {
                 method = 'POST';
             } else {
@@ -474,6 +478,7 @@
             }.bind(this));
         },
         _processMessageFromIframe: function(e) {
+            console.log('e.data.status', e.data.status);
             switch (e.data.status) {
                 case 'ready':
                 case 'check-ready':
@@ -510,12 +515,9 @@
                                     this._setParams({
                                         templateContent: newHtml
                                     });
-                                    this.iframe.contentWindow.postMessage({
-                                        method: 'setParams',
-                                        params: {
-                                            templateContent: this._getParam('templateContent')
-                                        }
-                                    }, '*');
+                                    this._postMessageToIframe('setParams', {
+                                        templateContent: this._getParam('templateContent')
+                                    });
                                     self.location.href = this.iframe.src + '?' + this._encodeParams(params);
                                 }.bind(this), function(e){
                                    console.error(e);
@@ -554,29 +556,39 @@
                     console.error('default: e.data.status = ' + e.data.status);
             }
         },
-        _addIframe: function (method) {
-            var loaded = false;
+        _postMessageToIframe: function (method, params) {
+            var message = {
+                method: method ? method : ''
+            };
+            if (params && typeof(params) === 'object') {
+                message.params = params;
+            }
+            this.iframe.contentWindow.postMessage(message, '*');
+        },
+        _addIframe: function (callback) {
+            if (this.control.iframe.hasLoaded) {
+                console.warn('Iframe is loaded');
+                callback();
+                return;
+            } else if (this.control.iframe.isLoading) {
+                console.warn('Iframe is loading');
+                return;
+            }
             this.iframe.id = 'smartpush-webpush-iframe';
             this.iframe.style.display = 'none';
             this.iframe.src = (this._getParam('setupEndPoint') ? this._getParam('setupEndPoint') : '')+'/webpush'+(this.version ? '-'+this.version : '')+'.html';
             this.iframe.onload = function() {
-                if (!loaded) {
-                    loaded = true;
-                    this.iframe.contentWindow.postMessage({
-                        method: method ? method : '',
-                        params: {
-                            devid: this._getParam('devid'),
-                            appid: this._getParam('appid'),
-                            platform: this._getParam('platform'),
-                            setupEndPoint: this._getParam('setupEndPoint')
-                        }
-                    }, '*');
+                if (!this.control.iframe.hasLoaded) {
+                    this.control.iframe.hasLoaded = true;
+                    this.control.iframe.isLoading = false;
+                    callback();
                 }
             }.bind(this);
             this.iframe.onerror = function(e) {
                 console.error(e);
             };
             document.body.appendChild(this.iframe);
+            this.control.iframe.isLoading = true;
         },
         _addIframeEvents: function() {
             if (this.control.eventForPostMassageIsListening === false) {
@@ -597,6 +609,7 @@
             }
         },
         _setup: function(method) {
+            console.log('_setup', method);
             return new Promise(function(resolve, reject) {
                 if (this._getParam('platform') == 'CHROME' || this._getParam('platform') == 'FIREFOX') {
                     if (this.control.hasSetup === true) {
@@ -617,7 +630,14 @@
                         reject('ssl-error');
                     });
                     this._addIframeEvents();
-                    this._addIframe(method);
+                    this._addIframe(function() {
+                        this._postMessageToIframe(method, {
+                            devid: this._getParam('devid'),
+                            appid: this._getParam('appid'),
+                            platform: this._getParam('platform'),
+                            setupEndPoint: this._getParam('setupEndPoint')
+                        });
+                    }.bind(this));
 
                 } else if (this._getParam('platform') == 'SAFARI') {
 
@@ -639,7 +659,14 @@
                                     resolve();
                                 });
                                 this._addIframeEvents();
-                                this._addIframe();
+                                this._addIframe(function() {
+                                    this._postMessageToIframe(method, {
+                                        devid: this._getParam('devid'),
+                                        appid: this._getParam('appid'),
+                                        platform: this._getParam('platform'),
+                                        setupEndPoint: this._getParam('setupEndPoint')
+                                    });
+                                }.bind(this));
                             } else {
                                 resolve();
                             }
@@ -673,9 +700,7 @@
                             }
                             reject('default');
                         }.bind(this));
-                        this.iframe.contentWindow.postMessage({
-                            method: 'checkSubscriptionStatus'
-                        }, '*');
+                        this._postMessageToIframe('checkSubscriptionStatus');
 
                     } else if (this._getParam('platform') == 'SAFARI') {
 
@@ -693,9 +718,7 @@
                                         reject('default');
                                     }
                                 }.bind(this));
-                                this.iframe.contentWindow.postMessage({
-                                    method: 'getLocalStorageParams'
-                                }, '*');
+                                this._postMessageToIframe('getLocalStorageParams');
                             } else {
                                 reject('default');
                             }
@@ -721,7 +744,7 @@
                         this.events.on('subscribed-error', function() {
                             reject();
                         });
-                        this.iframe.contentWindow.postMessage({method: 'subscribe'}, '*');
+                        this._postMessageToIframe('subscribe');
 
                     } else if (this._getParam('platform') == 'SAFARI') {
 
@@ -751,13 +774,10 @@
                                                 regid: permissionData.deviceToken
                                             });
                                             if (this._getParam('setupEndPoint')) {
-                                                this.iframe.contentWindow.postMessage({
-                                                    method: 'setParams',
-                                                    params: {
-                                                        hwid: json.hwid,
-                                                        regid: permissionData.deviceToken
-                                                    }
-                                                }, '*');
+                                                this._postMessageToIframe('setParams', {
+                                                    hwid: json.hwid,
+                                                    regid: permissionData.deviceToken
+                                                });
                                             }
                                             resolve(this);
                                         } else {
@@ -919,6 +939,8 @@
                     sslUrl = sslUrl.substring(0, sslUrl.length - 1);
                 }
                 instance._setParams({setupEndPoint: sslUrl});
+            } else {
+                instance._setParams({setupEndPoint: false});
             }
 
             var templateUrl = setup.templateUrl;
@@ -927,6 +949,8 @@
                     templateUrl = templateUrl.substring(0, templateUrl.length - 1);
                 }
                 instance._setParams({templateEndPoint: templateUrl});
+            } else {
+                instance._setParams({templateEndPoint: false});
             }
 
             var platform = instance._getPlatform();
