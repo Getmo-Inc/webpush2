@@ -59,7 +59,7 @@ var webpush = window.Smartpush.create({
 If "webpush" variable returns ``false``, then probably your Browser don't support all features to run the webpush service. You can test it:
 ```javascript
 if (!webpush) {
-    console.warn('This Browser probably dont support all features required to run web push service');
+    console.warn('This browser is blocked to receive Notifications from this website, or it dont support all features required to run web push services.');
     // Disable or hide your UI elements, "web push notifications" are not supported because this Browser dont support all needed features.
     return;
 }
