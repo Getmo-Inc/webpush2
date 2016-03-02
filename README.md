@@ -146,8 +146,18 @@ webpush.subscribe().then(function(user) {
     // user.removeUnreadNotification()
     // user.removeAllUnreadNotifications()
     // We talk more about all the methods below, keep going.
-}, function() {
-    console.warn('Probably the user does not answer the notification request yet.');
+}, function(status) {
+    if (status == 'default') {
+        console.warn('The user has not accept the notification permission yet. Here is a good place to trigger the subscribe() method if you will ask the user permission to receive web push notifications.');
+        return;
+    }
+    if (status == 'denied') {
+        console.warn('The user has denied the permission to receive notifications for this domain, until the permission are manually changed we cannot send data.');
+        return;
+    }
+    if (status == 'error') {
+        console.log('Try again later, the GCM or APNS are unreachable at the moment');
+    }
 });
 ```
 

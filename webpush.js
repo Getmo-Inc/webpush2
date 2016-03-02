@@ -82,9 +82,9 @@
 
             if (platform == 'CHROME' || platform == 'FIREFOX') {
 
-                if (Notification.permission === 'denied') {
-                    //alert('Notification.permission is denied');
-                    console.warn('The user has blocked notifications. Check the current Notification permission. If its denied, it\'s a permanent block until the user changes the permission');
+                if (!('permission' in Notification)) {
+                    //alert('This browser dont support Notification');
+                    console.warn('This browser dont support Notification');
                     return;
                 }
 
@@ -544,11 +544,14 @@
                     break;
                 case 'default':
                     console.warn('The user close the ask box without answer to receive Notifications.');
-                    this.events.once('registered-error');
+                    this.events.once('subscribed-default');
                     break;
                 case 'denied':
                     console.warn('Permission for Notifications was denied. The user denied the notification permission which means we failed to subscribe and the user will need to manually change the notification permission to subscribe to push messages.');
-                    this.events.once('registered-error');
+                    this.events.once('subscribed-denied');
+                    break;
+                case 'error':
+                    this.events.once('subscribed-error');
                     break;
                 case 'local-storage-center-params':
                     this._setParams(e.data.params);
@@ -569,11 +572,9 @@
         },
         _addIframe: function (callback) {
             if (this.control.iframe.hasLoaded) {
-                console.warn('Iframe is loaded');
                 callback();
                 return;
             } else if (this.control.iframe.isLoading) {
-                console.warn('Iframe is loading');
                 return;
             }
             this.iframe.id = 'smartpush-webpush-iframe';
@@ -743,7 +744,13 @@
                             resolve(this);
                         }.bind(this));
                         this.events.on('subscribed-error', function() {
-                            reject();
+                            reject('error');
+                        });
+                        this.events.on('subscribed-default', function() {
+                            reject('default');
+                        });
+                        this.events.on('subscribed-denied', function() {
+                            reject('denied');
                         });
                         this._postMessageToIframe('subscribe');
 
@@ -782,11 +789,12 @@
                                             }
                                             resolve(this);
                                         } else {
-                                            reject(json.message);
+                                            console.error(json.message);
+                                            reject('error');
                                         }
                                     }.bind(this), function(e){
                                         console.error('Cannot register extra data for this device!', e);
-                                        reject(e);
+                                        reject('error');
                                     });
                                 } else if (permissionData.permission === 'denied') {
                                     reject('denied');
@@ -798,7 +806,7 @@
                     }
                 }.bind(this), function(e){
                     console.error('Cannot setup web push service for subscribe to webpush', e);
-                    reject(e);
+                    reject('error');
                 });
             }.bind(this));
         },
