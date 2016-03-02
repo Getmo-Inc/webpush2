@@ -55,6 +55,7 @@
             appid: null,
             hwid: null,
             regid: null,
+            alias: null,
             platform: null,
             setupEndPoint: null,
             templateEndPoint: null,
@@ -492,7 +493,8 @@
                 case 'status-true-checked':
                     this._setParams({
                         hwid: e.data.hwid,
-                        regid: e.data.regid
+                        regid: e.data.regid,
+                        alias: e.data.alias
                     });
                     this.events.once(e.data.status);
                     break;
@@ -532,7 +534,8 @@
                 case 'subscribed':
                     this._setParams({
                         hwid: e.data.hwid,
-                        regid: e.data.regid
+                        regid: e.data.regid,
+                        alias: e.data.alias
                     });
                     this.events.once(e.data.status);
                     break;

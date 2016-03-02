@@ -185,10 +185,11 @@
                     break;
                 case 'granted':
                     var hwid = getParam('hwid'),
-                        regid = getParam('regid');
+                        regid = getParam('regid'),
+                        alias = getParam('alias');
 
                     if (hwid && regid) {
-                        sendMessageToParent({status: 'status-true-checked', hwid: hwid, regid: regid});
+                        sendMessageToParent({status: 'status-true-checked', hwid: hwid, regid: regid, alias: alias});
                     } else {
                         sendMessageToServiceWorker({test: true}).then(function(){
                             navigator.serviceWorker.ready.then(function(registration) {
@@ -199,7 +200,7 @@
                                     }
                                     var data = getDataFromSubscription(subscription);
                                     if (hwid) {
-                                        sendMessageToParent({status: 'status-true-checked', hwid: hwid, regid: data.regid});
+                                        sendMessageToParent({status: 'status-true-checked', hwid: hwid, regid: data.regid, alias: alias});
                                     } else {
                                         console.warn('You are not fully registered yet.');
                                         sendMessageToParent({status: 'status-false-checked'});
@@ -288,7 +289,12 @@
                                             hwid: getParam('hwid'),
                                             setupEndPoint: getParam('setupEndPoint')
                                         }).then(function(){
-                                            sendMessageToParent({status: 'subscribed', hwid: getParam('hwid'), regid: data.regid});
+                                            sendMessageToParent({
+                                                status: 'subscribed',
+                                                hwid: getParam('hwid'),
+                                                regid: data.regid,
+                                                alias: getParam('alias')
+                                            });
                                         }, function(){
                                             console.error('Cannot send message to service worker!');
                                             window.location.reload(); // test failed cenario
