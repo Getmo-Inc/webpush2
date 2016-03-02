@@ -65,7 +65,7 @@ if (!webpush) {
 }
 ```
 
-When you need to centralize subdomains, or when you dont have a have a secure connection, you can pass a string with a absolute https URL, named `sslUrl`.
+When you need to centralize subdomains, or when you dont have a secure connection, you can pass a string with a absolute https URL, named `sslUrl`.
 > It is recommended to use the `templateUrl` property with `sslUrl`, to customize and prevent the white page when the browser *Ask* to send Web Notification.
  
 Example:
