@@ -779,12 +779,14 @@
                                         if (json.code == 200 && json.hwid) {
                                             this._setParams({
                                                 hwid: json.hwid,
-                                                regid: permissionData.deviceToken
+                                                regid: permissionData.deviceToken,
+                                                alias: json.alias
                                             });
                                             if (this._getParam('setupEndPoint')) {
                                                 this._postMessageToIframe('setParams', {
                                                     hwid: json.hwid,
-                                                    regid: permissionData.deviceToken
+                                                    regid: permissionData.deviceToken,
+                                                    alias: json.alias
                                                 });
                                             }
                                             resolve(this);
