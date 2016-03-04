@@ -7,7 +7,7 @@
 
     var _webpush = {
         debug: true,
-        version: '1.2.5',
+        version: '1.2.6',
         iframe: document.createElement('iframe'),
         event: document.createElement('div'),
         events: {
@@ -699,6 +699,7 @@
                             if (!this._getParam('setupEndPoint')) {
                                 document.body.removeChild(document.getElementById('smartpush-webpush-iframe'));
                                 this.control.hasSetup = false;
+                                this.control.iframe.hasLoaded = false;
                             }
                             reject('default');
                         }.bind(this));
