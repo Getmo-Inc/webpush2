@@ -285,6 +285,14 @@ user.removeAllUnreadNotifications().then(function(result){
 });
 ```
 
+###### `user.getAlias()`
+
+> Important! Note that this function dont return a Promise. It returns a string value.
+
+```javascript
+var alias = user.getAlias();
+```
+
 ### Full Example:
 
 ```javascript

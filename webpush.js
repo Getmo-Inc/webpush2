@@ -665,6 +665,9 @@
                 }
             }.bind(this));
         },
+        getAlias: function() {
+            return this._getParam('alias');
+        },
         checkStatus: function() {
             return new Promise(function(resolve, reject) {
                 this._setup().then(function() {
