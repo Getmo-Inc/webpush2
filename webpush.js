@@ -7,7 +7,7 @@
 
     var _webpush = {
         debug: true,
-        version: '1.2.6',
+        version: '1.2.7',
         iframe: document.createElement('iframe'),
         event: document.createElement('div'),
         events: {
@@ -643,7 +643,7 @@
 
                 } else if (this._getParam('platform') == 'SAFARI') {
 
-                    if (this._getParam('safariPushID')) {
+                    if (this._getParam('safariPushID') && this._getParam('hwid') && this._getParam('regid')) {
                         resolve();
                         return true;
                     }
@@ -653,25 +653,8 @@
                         appid: this._getParam('appid')
                     }, 'POST').then(function(json){
                         if (json.code = 200 && json.safariPushID) {
-                            this._setParams({
-                                safariPushID: json.safariPushID
-                            });
-                            if (this._getParam('setupEndPoint')) {
-                                this.events.on('safari-has-setup', function(){
-                                    resolve();
-                                });
-                                this._addIframeEvents();
-                                this._addIframe(function() {
-                                    this._postMessageToIframe(method, {
-                                        devid: this._getParam('devid'),
-                                        appid: this._getParam('appid'),
-                                        platform: this._getParam('platform'),
-                                        setupEndPoint: this._getParam('setupEndPoint')
-                                    });
-                                }.bind(this));
-                            } else {
-                                resolve();
-                            }
+                            this._setParams({safariPushID: json.safariPushID});
+                            resolve();
                         } else {
                             reject(json.message);
                         }
@@ -785,9 +768,13 @@
                                             });
                                             if (this._getParam('setupEndPoint')) {
                                                 this._postMessageToIframe('setParams', {
+                                                    devid: this._getParam('devid'),
+                                                    appid: this._getParam('appid'),
                                                     hwid: json.hwid,
                                                     regid: permissionData.deviceToken,
-                                                    alias: json.alias
+                                                    alias: json.alias,
+                                                    platform: this._getParam('platform'),
+                                                    setupEndPoint: this._getParam('setupEndPoint')
                                                 });
                                             }
                                             resolve(this);
