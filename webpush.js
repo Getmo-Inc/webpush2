@@ -353,9 +353,14 @@
                     }
                     var image = new Image();
                     image.addEventListener('load', function(e) {
-                        e.stopPropagation();
-                        this.removeEventListener('load');
                         imagesContent[this.id] = me._makeBase64OfImage(this);
+                        e.stopPropagation();
+                        //this.removeEventListener('load');
+                    }, true);
+                    image.addEventListener('error', function(e) {
+                        cssImagesContent[this.id].base64 = 'false';
+                        e.stopPropagation();
+                        //this.removeEventListener('error');
                     }, true);
                     image.id = i;
                     image.src = imagesTags[i].src;
@@ -376,7 +381,7 @@
                         }
                         counter++;
                     }
-                }.bind(this), 50);
+                }.bind(this), 200);
             }.bind(this));
         },
         _loadImagesFromStylesForTemplate: function(tempDocument) {
@@ -403,14 +408,14 @@
                         }
                         var image = new Image();
                         image.addEventListener('load', function(e) {
-                            e.stopPropagation();
-                            this.removeEventListener('load');
                             cssImagesContent[this.id].base64 = me._makeBase64OfImage(this);
+                            e.stopPropagation();
+                            //this.removeEventListener('load');
                         }, true);
                         image.addEventListener('error', function(e) {
-                            e.stopPropagation();
-                            this.removeEventListener('error');
                             cssImagesContent[this.id].base64 = 'false';
+                            e.stopPropagation();
+                            //this.removeEventListener('error');
                         }, true);
                         image.id = prop;
                         image.src = prop;
@@ -443,14 +448,14 @@
                             clearInterval(interval);
                             resolve(new DOMParser().parseFromString('<!DOCTYPE html>'+html, 'text/html'));
                         } else {
-                            if (counter > 100) {
+                            if (counter > 150) {
                                 console.error('cssImagesContent', cssImagesContent);
                                 clearInterval(interval);
                                 reject('_loadImagesFromStylesForTemplate() Timeout!');
                             }
                             counter++;
                         }
-                    }.bind(this), 50);
+                    }.bind(this), 200);
                 } else {
                     resolve(tempDocument);
                 }
@@ -665,6 +670,14 @@
                 }
             }.bind(this));
         },
+        _getBrowserVersion: function() {
+            switch (this.getParam('platform')) {
+                case 'CHROME': return navigator.userAgent.match(/Chrom(e|ium|eframe)\/([0-9]+)\./i)[0];
+                case 'FIREFOX': return navigator.userAgent.match(/Firefox\/([0-9]+)\./i)[0];
+                case 'SAFARI': return 'Safari/' + navigator.userAgent.match(/Version\/(([0-9]+)(\.|[0-9])+)/i)[1];
+            }
+            return '';
+        },
         getAlias: function() {
             return this._getParam('alias');
         },
@@ -822,7 +835,8 @@
                     appid: this._getParam('appid'),
                     hwid: this._getParam('hwid'),
                     platform: this._getParam('platform'),
-                    dateFormat: dateFormat ? dateFormat : ''
+                    dateFormat: dateFormat ? dateFormat : '',
+                    browserVersion: this._getBrowserVersion()
                 }, 'POST').then(function(json){
                     for (var i = 0; i < json.length; i++){
                         json[i].payload.icon = (json[i].payload.icon && (json[i].payload.icon+''.indexOf('http') !== -1)) ? json[i].payload.icon : (this._getParam('setupEndPoint') ? this._getParam('setupEndPoint') : '') + '/webpush-image.png';
@@ -841,7 +855,8 @@
                     appid: this._getParam('appid'),
                     hwid: this._getParam('hwid'),
                     platform: this._getParam('platform'),
-                    dateFormat: dateFormat ? dateFormat : ''
+                    dateFormat: dateFormat ? dateFormat : '',
+                    browserVersion: this._getBrowserVersion()
                 }, 'POST').then(function(json){
                     for (var i = 0; i < json.length; i++){
                         json[i].payload.icon = (json[i].payload.icon && (json[i].payload.icon+''.indexOf('http') !== -1)) ? json[i].payload.icon : (this._getParam('setupEndPoint') ? this._getParam('setupEndPoint') : '') + '/webpush-image.png';
@@ -858,21 +873,24 @@
                 devid: this._getParam('devid'),
                 appid: this._getParam('appid'),
                 hwid: this._getParam('hwid'),
-                pushid: pushid
+                pushid: pushid,
+                browserVersion: this._getBrowserVersion()
             }, 'DELETE');
         },
         removeAllUnreadNotifications: function() {
             return this._request(this.notificationEndPoint + '/read-all', {
                 devid: this._getParam('devid'),
                 appid: this._getParam('appid'),
-                hwid: this._getParam('hwid')
+                hwid: this._getParam('hwid'),
+                browserVersion: this._getBrowserVersion()
             }, 'DELETE');
         },
         getTag: function (key) {
             return this._request(this.tagEndPoint + '/' + this._getParam('hwid'), {
                 devid: this._getParam('devid'),
                 appid: this._getParam('appid'),
-                key: key
+                key: key,
+                browserVersion: this._getBrowserVersion()
             }, 'POST');
         },
         addTag: function (key, value, type) {
@@ -888,7 +906,8 @@
                 uuid: this._getParam('hwid'),
                 type: type,
                 key: key,
-                value: value
+                value: value,
+                browserVersion: this._getBrowserVersion()
             }, 'POST');
         },
         removeTag: function(key, value, type) {
@@ -904,7 +923,8 @@
                 uuid: this._getParam('hwid'),
                 type: type,
                 key: key,
-                value: value
+                value: value,
+                browserVersion: this._getBrowserVersion()
             }, 'DELETE');
         },
         optOut: function(bool) {
@@ -912,7 +932,8 @@
                 devid: this._getParam('devid'),
                 appid: this._getParam('appid'),
                 uuid: this._getParam('hwid'),
-                block: bool ? '1' : '0'
+                block: bool ? '1' : '0',
+                browserVersion: this._getBrowserVersion()
             }, 'PUT');
         }
     };
