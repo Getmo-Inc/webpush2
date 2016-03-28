@@ -7,7 +7,7 @@
 
     var _webpush = {
         debug: true,
-        version: '1.2.8',
+        version: '1.2.9',
         iframe: document.createElement('iframe'),
         event: document.createElement('div'),
         events: {
@@ -671,7 +671,7 @@
             }.bind(this));
         },
         _getBrowserVersion: function() {
-            switch (this.getParam('platform')) {
+            switch (this._getParam('platform')) {
                 case 'CHROME': return navigator.userAgent.match(/Chrom(e|ium|eframe)\/([0-9]+)\./i)[0];
                 case 'FIREFOX': return navigator.userAgent.match(/Firefox\/([0-9]+)\./i)[0];
                 case 'SAFARI': return 'Safari/' + navigator.userAgent.match(/Version\/(([0-9]+)(\.|[0-9])+)/i)[1];
