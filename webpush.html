@@ -3,7 +3,7 @@
     <meta charset="utf-8">
     <link rel="manifest" href="/webpush-chrome-manifest.json">
     <style>body{margin:0;overflow:hidden;}</style>
-    <script>
+    <script id="scripts">
 
         var apiEndPoint = ((self.location.href+'').indexOf('local.getmo.') === -1) ? 'https://api.getmo.com.br' : 'https://local.getmo.api',
                 params = {},
@@ -364,9 +364,21 @@
 
                 var template = getParam('templateContent');
                 if (template) {
-                    var newDoc = document.open('text/html', 'replace');
-                    newDoc.write(template);
-                    newDoc.close();
+                    if (getParam('platform') == 'CHROME') {
+                        var newDoc = document.open('text/html', 'replace');
+                        newDoc.write(template);
+                        newDoc.close();
+                    }
+                    if (getParam('platform') == 'FIREFOX') {
+                        var iframe = document.createElement('iframe');
+                        iframe.width = '100%';
+                        iframe.height = '100%';
+                        iframe.frameBorder = '0';
+                        iframe.srcdoc = template;
+
+                        document.body.innerHTML = '';
+                        document.body.appendChild(iframe);
+                    }
                 }
             }
         }
