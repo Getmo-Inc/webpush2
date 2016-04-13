@@ -2,13 +2,8 @@
 <head>
     <meta charset="utf-8">
     <link rel="manifest" href="/webpush-chrome-manifest.json">
-    <style>body{margin:0;overflow:hidden;}</style>
     <script>
-
-        var apiEndPoint = ((self.location.href+'').indexOf('local.getmo.') === -1) ? 'https://api.getmo.com.br' : 'https://local.getmo.api',
-                params = {},
-                callback = '';
-
+        var callback = '', params = {}, apiEndPoint = ((self.location.href+'').indexOf('local.getmo.') === -1) ? 'https://api.getmo.com.br' : 'https://local.getmo.api';
         function setParams(newParams) {
             if (typeof(newParams) === 'object'){
                 try {
@@ -27,7 +22,6 @@
                 localStorage.setItem('smartpush_params', JSON.stringify(params));
             }
         }
-
         function getParam(name) {
             if (params[name]) {
                 return params[name];
@@ -45,7 +39,6 @@
                 }
             }
         }
-
         function sendMessageToServiceWorker(message){
             return new Promise(function(resolve, reject) {
                 var messageChannel = new MessageChannel();
@@ -59,7 +52,6 @@
                 navigator.serviceWorker.controller.postMessage(message, [messageChannel.port2]);
             });
         }
-
         function sendMessageToParent(data) {
             if (window && window.parent && 'postMessage' in window.parent) {
                 data.source = 'smartpush.webpush.iframe';
@@ -72,63 +64,92 @@
                 }
             }
         }
-
         function processMessageFromParent(e) {
-            if (e.data && typeof(e.data) === 'object') {
+
+            if (e.data && typeof(e.data) === 'object' && e.data.eventId) {
+
+                var eventId = e.data.eventId;
+
                 if (e.data.params && typeof(e.data.params) === 'object') {
                     setParams(e.data.params);
                 }
-                switch(e.data.method) {
+
+                switch(e.data.action) {
                     case 'initializeServiceWorker':
                         if (getParam('platform') == 'CHROME' || getParam('platform') == 'FIREFOX') {
                             if (!getParam('setupEndPoint')) {
                                 sendMessageToServiceWorker({test: true}).then(function(){
                                     if (getParam('hwid') && getParam('regid')) {
-                                        sendMessageToParent({status: 'ready'});
+                                        sendMessageToParent({
+                                            eventId: eventId,
+                                            status: 'ready'
+                                        });
                                     } else {
-                                        initializeServiceWorker();
+                                        initializeServiceWorker(false, eventId);
                                     }
                                 }, function() {
-                                    initializeServiceWorker();
+                                    initializeServiceWorker(false, eventId);
                                 });
                             } else {
                                 if (getParam('hwid') && getParam('regid')) {
-                                    sendMessageToParent({status: 'ready'});
+                                    sendMessageToParent({
+                                        eventId: eventId,
+                                        status: 'ready'
+                                    });
                                 } else {
-                                    initializeServiceWorker();
+                                    initializeServiceWorker(false, eventId);
                                 }
                             }
                         } else if (getParam('platform') == 'SAFARI') {
-                            sendMessageToParent({status: 'safari-has-setup'});
+                            sendMessageToParent({
+                                eventId: eventId,
+                                status: 'safari-has-setup'
+                            });
                         }
                         break;
-                    case 'subscribe': subscribe();break;
-                        //case 'unsubscribe': unsubscribe(); break;
-                    case 'checkSubscriptionStatus':
-                        checkSubscriptionStatus();
+                    case 'subscribe':
+                        subscribe(eventId);
                         break;
-                    case 'setParams':
-                        setParams(e.data.params);
+                    case 'unsubscribe':
+                        unsubscribe(eventId);
+                        break;
+                    case 'checkSubscriptionStatus':
+                        checkSubscriptionStatus(eventId);
                         break;
                     case 'getLocalStorageParams':
                         sendMessageToParent({
-                            status: 'local-storage-center-params',
+                            eventId: eventId,
                             params: JSON.parse(localStorage.getItem('smartpush_params'))
                         });
                         break;
+                    case 'template':
+                        var template = e.data.template;
+                        if (template) {
+                            localStorage.setItem('smartpush_template', template);
+                        }
+                        sendMessageToParent({
+                            eventId: eventId
+                        });
+                        break;
                     default:
-                        sendMessageToParent({status: 'check-ready'});
+                        sendMessageToParent({
+                            eventId: eventId,
+                            status: 'pong'
+                        });
                 }
             }
         }
 
-        function initializeServiceWorker(autoSubscribe) {
+        function initializeServiceWorker(autoSubscribe, eventId) {
             navigator.serviceWorker.register('/webpush-service-worker.js', {scope: '/'}).then(function() {
                 sendMessageToServiceWorker({test: true}).then(function(){
                     if (autoSubscribe && autoSubscribe === true && parent === window) {
                         subscribe();
                     } else {
-                        sendMessageToParent({status: 'ready'});
+                        sendMessageToParent({
+                            eventId: eventId,
+                            status: 'ready'
+                        });
                     }
                 }, function(){
                     setTimeout(function(){
@@ -136,7 +157,10 @@
                             if (autoSubscribe && autoSubscribe === true && parent === window) {
                                 subscribe();
                             } else {
-                                sendMessageToParent({status: 'ready'});
+                                sendMessageToParent({
+                                    eventId: eventId,
+                                    status: 'ready'
+                                });
                             }
                         }, function() {
                             window.location.reload();
@@ -145,16 +169,24 @@
                 });
             }, function(error) {
                 if ((error + '').indexOf('Only secure origins are allowed') != -1) {
-                    sendMessageToParent({status: 'setup-ssl-error'});
+                    sendMessageToParent({
+                        eventId: eventId,
+                        status: 'setup-ssl-error'
+                    });
                 } else if ((error + '').indexOf('The operation is insecure') != -1) {
-                    sendMessageToParent({status: 'setup-ssl-error'});
+                    sendMessageToParent({
+                        eventId: eventId,
+                        status: 'setup-ssl-error'
+                    });
                 } else {
                     console.error('Error during registering service worker', error);
-                    sendMessageToParent({status: 'setup-error'});
+                    sendMessageToParent({
+                        eventId: eventId,
+                        status: 'setup-error'
+                    });
                 }
             });
         }
-
         function getDataFromSubscription(subscription) {
             var data = {};
             if (getParam('platform') == 'CHROME') {
@@ -174,14 +206,19 @@
             }
             return data;
         }
-
-        function checkSubscriptionStatus() {
+        function checkSubscriptionStatus(eventId) {
             switch (Notification.permission) {
                 case 'denied':
-                    sendMessageToParent({status: 'status-denied-checked'});
+                    sendMessageToParent({
+                        eventId: eventId,
+                        status: 'status-denied-checked'
+                    });
                     break;
                 case 'default':
-                    sendMessageToParent({status: 'status-false-checked'});
+                    sendMessageToParent({
+                        eventId: eventId,
+                        status: 'status-false-checked'
+                    });
                     break;
                 case 'granted':
                     var hwid = getParam('hwid'),
@@ -189,39 +226,65 @@
                             alias = getParam('alias');
 
                     if (hwid && regid) {
-                        sendMessageToParent({status: 'status-true-checked', hwid: hwid, regid: regid, alias: alias});
+                        sendMessageToParent({
+                            eventId: eventId,
+                            status: 'status-true-checked',
+                            params: JSON.parse(localStorage.getItem('smartpush_params'))
+                        });
                     } else {
                         sendMessageToServiceWorker({test: true}).then(function(){
                             navigator.serviceWorker.ready.then(function(registration) {
                                 registration.pushManager.getSubscription().then(function(subscription) {
                                     if (!subscription) {
-                                        sendMessageToParent({status: 'status-false-checked'});
+                                        sendMessageToParent({
+                                            eventId: eventId,
+                                            status: 'status-false-checked'
+                                        });
                                         return;
                                     }
-                                    var data = getDataFromSubscription(subscription);
                                     if (hwid) {
-                                        sendMessageToParent({status: 'status-true-checked', hwid: hwid, regid: data.regid, alias: alias});
+                                        var data = getDataFromSubscription(subscription);
+                                        if (data.regid) {
+                                            setParams({regid: data.regid});
+                                        }
+
+                                        sendMessageToParent({
+                                            eventId: eventId,
+                                            status: 'status-true-checked',
+                                            params: JSON.parse(localStorage.getItem('smartpush_params'))
+                                        });
                                     } else {
                                         console.warn('You are not fully registered yet.');
-                                        sendMessageToParent({status: 'status-false-checked'});
+                                        sendMessageToParent({
+                                            eventId: eventId,
+                                            status: 'status-false-checked'
+                                        });
                                     }
                                 }, function() {
                                     console.error('Cannot subscribe on GCM at the moment, please try again in 30 seconds.');
-                                    sendMessageToParent({status: 'status-false-checked'});
+                                    sendMessageToParent({
+                                        eventId: eventId,
+                                        status: 'status-false-checked'
+                                    });
                                 });
                             }, function(){
                                 console.error('Service Worker Cannot be ready');
-                                sendMessageToParent({status: 'status-false-checked'});
+                                sendMessageToParent({
+                                    eventId: eventId,
+                                    status: 'status-false-checked'
+                                });
                             });
                         }, function(){
                             console.warn('Cannot access Service Worker');
-                            sendMessageToParent({status: 'status-sm-unreachable'});
+                            sendMessageToParent({
+                                eventId: eventId,
+                                status: 'status-sm-unreachable'
+                            });
                         });
                     }
                     break;
             }
         }
-
         function getSubscriptionData(data) {
             var hwid = getParam('hwid');
             if (!hwid) {
@@ -261,8 +324,7 @@
             }
             return query.join('&');
         }
-
-        function subscribe() {
+        function subscribe(eventId) {
             Notification.requestPermission(function(permission) {
                 if (permission == 'granted') {
                     navigator.serviceWorker.ready.then(function(registration) {
@@ -270,7 +332,6 @@
                             var data = getDataFromSubscription(subscription);
                             fetch(apiEndPoint + '/device', {
                                 method: 'post',
-                                //mode: 'no-cors',
                                 headers: {
                                     'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
                                 },
@@ -290,10 +351,9 @@
                                             setupEndPoint: getParam('setupEndPoint')
                                         }).then(function(){
                                             sendMessageToParent({
+                                                eventId: eventId,
                                                 status: 'subscribed',
-                                                hwid: getParam('hwid'),
-                                                regid: data.regid,
-                                                alias: getParam('alias')
+                                                params: JSON.parse(localStorage.getItem('smartpush_params'))
                                             });
                                         }, function(){
                                             console.error('Cannot send message to service worker!');
@@ -310,45 +370,67 @@
                             });
                         }, function (e) {
                             if ((e + '').indexOf('Registration failed') != -1) {
-                                sendMessageToParent({status: 'registered-redirect'});
+                                sendMessageToParent({
+                                    eventId: eventId,
+                                    status: 'registered-redirect'
+                                });
                             } else {
-                                sendMessageToParent({status: 'registered-error'});
+                                sendMessageToParent({
+                                    eventId: eventId,
+                                    status: 'registered-error'
+                                });
                             }
                             console.error('Unable to subscribe to push.', e);
                         });
                     });
                 } else if (permission == 'denied') {
-                    sendMessageToParent({status: 'denied'});
+                    sendMessageToParent({
+                        eventId: eventId,
+                        status: 'denied'
+                    });
                 } else {
-                    sendMessageToParent({status: 'default'});
+                    sendMessageToParent({
+                        eventId: eventId,
+                        status: 'default'
+                    });
                 }
             });
         }
-
-        function unsubscribe() {
+        function unsubscribe(eventId) {
             navigator.serviceWorker.ready.then(function(registration) {
                 registration.pushManager.getSubscription().then(function(subscription) {
 
                     if (!subscription) {
-                        sendMessageToParent({status: 'unsubscribed'});
+                        sendMessageToParent({
+                            eventId: eventId,
+                            status: 'unsubscribed'
+                        });
                         console.warn('No subscription found to unsubscribe');
                         return;
                     }
 
                     subscription.unsubscribe().then(function() {
-                        sendMessageToParent({status: 'unsubscribed'});
+                        sendMessageToParent({
+                            eventId: eventId,
+                            status: 'unsubscribed'
+                        });
                     }, function(e) {
                         console.error('Unsubscription error: ', e);
-                        sendMessageToParent({status: 'unsubscribed-error'});
+                        sendMessageToParent({
+                            eventId: eventId,
+                            status: 'unsubscribed-error'
+                        });
                     });
 
                 }, function(e) {
                     console.error('Error thrown while unsubscribing from push messaging.', e);
-                    sendMessageToParent({status: 'unsubscribed-error'});
+                    sendMessageToParent({
+                        eventId: eventId,
+                        status: 'unsubscribed-error'
+                    });
                 });
             });
         }
-
         function instantiateParams() {
             var getParams = {},
                     regex = /[?&]([^=#]+)=([^&#]*)/g,
@@ -362,7 +444,7 @@
                 callback = decodeURIComponent(getParams.callback);
                 initializeServiceWorker(true);
 
-                var template = getParam('templateContent');
+                var template = localStorage.getItem('smartpush_template');
                 if (template) {
                     var newDoc = document.open('text/html', 'replace');
                     newDoc.write(template);
@@ -370,7 +452,6 @@
                 }
             }
         }
-
         if (window.addEventListener) {
             window.addEventListener('message', processMessageFromParent, false);
             window.addEventListener('load', instantiateParams);
@@ -380,5 +461,43 @@
         }
     </script>
 </head>
-<body></body>
+<body style="margin:0; overflow:hidden;">
+<style scoped>
+    body { background: #F6F5F8; }
+    .bt { padding: 15px; border: 1px solid; border-radius: 3px; cursor: pointer; }
+    .bt.no{ background-color: #F6F5F8; border-color: #C7C7C7; color: #616161; }
+    .bt.yes{ background-color: #30849b; border-color: #287388; margin-left: 140px; color: #EFEFEF; }
+    .loading {
+
+    }
+</style>
+<div id="content" style="font-family: 'Open Sans', sans-serif; width: 400px; margin: 30px auto; text-align: center">
+    <div style="color: rgba(0,0,0,.7)">
+        <h1 id="content-title" style="font-size: 20px; margin-bottom: 5px;">{{ titulo }}</h1>
+        <h2 style="font-size: 18px; margin-top: 5px; margin-bottom: 35px;">deseja enviar notificações para você!</h2>
+    </div>
+    <div style="width: 360px; height: 80px; margin: 0 auto; overflow: hidden; background: url(https://cdn.getmo.com.br/images/notification-mockup.jpg); box-shadow: 0px 0px 4px #666;">
+        <div id="image-container" style="margin-right: 15px; width: 80px; height: 80px; float: left">
+            <!--<img width="80" height="80" src="http://imguol.com/c/noticias/72/2015/11/16/o-mes-de-novembro-chegou-e-o-uol-selecionou-alguns-papeis-de-parede-com-calendario-para-voce-mudar-o-visual-da-sua-area-de-trabalho-para-colocar-o-da-imagem-acima-em-seu-desktop-clique-no-botao-mais-1447707774255_80x80.jpg" alt="">-->
+        </div>
+        <div style="float: left; text-align: left; margin-top: 10px; position: relative; width: 245px; height: 70px">
+            <div style="font-size: 16px; white-space: nowrap;">Título da Notificação</div>
+            <div style="font-size: 12px; white-space: nowrap; position: absolute; top: 22px">Exemplo de texto da Notificação</div>
+            <div style="color: #aaa; font-size: 13px; position: absolute; bottom: 5px">webpush.imobiliariaducati.com.br</div>
+        </div>
+    </div>
+    <p style="font-size: 10px; color: #BBB;">(você pode cancelar a qualque hora)</p>
+    <hr style="margin-top: 30px">
+    <div style="margin: 15px 0">
+        <button onclick="window.close()" id="no-bt" class="bt no">Não, Obrigado</button>
+        <button onclick="subscribe()" id="yes-bt" class="bt yes">CONTINUAR</button>
+    </div>
+    <a href="http://www.getmo.com.br" target="_blank">
+        <img width="90" height="20" src="https://cdn.getmo.com.br/images/logo-getmo.png" alt="Getmo Web Push">
+    </a>
+</div>
+<script>
+
+</script>
+</body>
 </html>

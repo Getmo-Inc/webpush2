@@ -517,7 +517,7 @@
      *
      */
     Lib = function () {
-        this.version = '2.0';
+        this.version = '';
         this.iframe = self.document.createElement('iframe');
         this.popup = null;
     };
@@ -645,7 +645,7 @@
         }
         this.iframe.id = 'smartpush-webpush-iframe';
         this.iframe.style.display = 'none';
-        this.iframe.src = (this.params._get('setupEndPoint') || '') + '/webpush' + (this.version ? '-' + this.version : '') + '.html';
+        this.iframe.src = (this.params._get('setupEndPoint') || '') + '/lib' + (this.version ? '-' + this.version : '') + '.html';
         this.iframe.onload = function () {
             if (!that.control.iframe.hasLoaded) {
                 that.control.iframe.hasLoaded = true;
