@@ -7,7 +7,7 @@
 
     var _webpush = {
         debug: true,
-        version: '',
+        version: '1.2.10',
         iframe: document.createElement('iframe'),
         event: document.createElement('div'),
         events: {
