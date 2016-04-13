@@ -103,7 +103,7 @@
                         }
                         break;
                     case 'subscribe': subscribe();break;
-                        //case 'unsubscribe': unsubscribe(); break;
+                    //case 'unsubscribe': unsubscribe(); break;
                     case 'checkSubscriptionStatus':
                         checkSubscriptionStatus();
                         break;
@@ -185,8 +185,8 @@
                     break;
                 case 'granted':
                     var hwid = getParam('hwid'),
-                            regid = getParam('regid'),
-                            alias = getParam('alias');
+                        regid = getParam('regid'),
+                        alias = getParam('alias');
 
                     if (hwid && regid) {
                         sendMessageToParent({status: 'status-true-checked', hwid: hwid, regid: regid, alias: alias});

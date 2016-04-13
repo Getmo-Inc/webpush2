@@ -7,7 +7,7 @@
 
     var _webpush = {
         debug: true,
-        version: '1.2.9',
+        version: '',
         iframe: document.createElement('iframe'),
         event: document.createElement('div'),
         events: {
@@ -279,6 +279,7 @@
             return new Promise(function(resolve, reject) {
                 for (var i = 0; i < cssTags.length; i++) {
                     if (cssTags[i].rel != 'stylesheet') {
+                        cssContent.push('');
                         continue;
                     }
                     var href = cssTags[i].href;
@@ -321,15 +322,13 @@
                         clearInterval(interval);
                         resolve(tempDocument);
                     } else {
-                        if (counter > 150) {
-                            console.error('cssTags', cssTags);
-                            console.error('cssContent', cssContent);
+                        if (counter > 50) {
                             clearInterval(interval);
                             reject('_loadStylesForTemplate() Timeout!');
                         }
                         counter++;
                     }
-                }.bind(this), 50);
+                }.bind(this), 250);
             }.bind(this));
         },
         _loadImagesForTemplate: function(tempDocument) {
@@ -373,7 +372,7 @@
                         clearInterval(interval);
                         resolve(tempDocument);
                     } else {
-                        if (counter > 150) {
+                        if (counter > 50) {
                             console.error('imagesContent', imagesContent);
                             console.error('imagesTags', imagesTags);
                             clearInterval(interval);
@@ -381,7 +380,7 @@
                         }
                         counter++;
                     }
-                }.bind(this), 200);
+                }.bind(this), 250);
             }.bind(this));
         },
         _loadImagesFromStylesForTemplate: function(tempDocument) {
@@ -448,14 +447,14 @@
                             clearInterval(interval);
                             resolve(new DOMParser().parseFromString('<!DOCTYPE html>'+html, 'text/html'));
                         } else {
-                            if (counter > 150) {
+                            if (counter > 50) {
                                 console.error('cssImagesContent', cssImagesContent);
                                 clearInterval(interval);
                                 reject('_loadImagesFromStylesForTemplate() Timeout!');
                             }
                             counter++;
                         }
-                    }.bind(this), 200);
+                    }.bind(this), 250);
                 } else {
                     resolve(tempDocument);
                 }
