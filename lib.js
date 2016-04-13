@@ -235,6 +235,7 @@
         return new Promise(function (resolve, reject) {
             for (i = 0; i < cssTags.length; i + 1) {
                 if (cssTags[i].rel !== 'stylesheet') {
+                    cssContent.push('');
                     continue;
                 }
                 href = cssTags[i].href;
