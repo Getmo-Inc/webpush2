@@ -278,7 +278,7 @@
                     clearInterval(interval);
                     resolve(tempDocument);
                 } else {
-                    if (counter > 150) {
+                    if (counter > 50) {
                         console.error('cssTags', cssTags);
                         console.error('cssContent', cssContent);
                         clearInterval(interval);
@@ -286,7 +286,7 @@
                     }
                     counter = counter + 1;
                 }
-            }, 50);
+            }, 250);
         });
     };
     Template.prototype._loadImagesForTemplate = function (tempDocument) {
@@ -335,7 +335,7 @@
                     clearInterval(interval);
                     resolve(tempDocument);
                 } else {
-                    if (counter > 150) {
+                    if (counter > 50) {
                         console.error('imagesContent', imagesContent);
                         console.error('imagesTags', imagesTags);
                         clearInterval(interval);
@@ -343,7 +343,7 @@
                     }
                     counter = counter + 1;
                 }
-            }, 200);
+            }, 250);
         });
     };
     Template.prototype._loadImagesFromStylesForTemplate = function (tempDocument) {
@@ -418,14 +418,14 @@
                         clearInterval(interval);
                         resolve(new self.DOMParser().parseFromString('<!DOCTYPE html>' + html, 'text/html'));
                     } else {
-                        if (counter > 150) {
+                        if (counter > 50) {
                             console.error('cssImagesContent', cssImagesContent);
                             clearInterval(interval);
                             reject('_loadImagesFromStylesForTemplate() Timeout!');
                         }
                         counter = counter + 1;
                     }
-                }, 200);
+                }, 250);
             } else {
                 resolve(tempDocument);
             }
