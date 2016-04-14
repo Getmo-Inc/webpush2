@@ -123,7 +123,7 @@
         }
 
         function initializeServiceWorker(autoSubscribe) {
-            navigator.serviceWorker.register('/webpush-service-worker.js', {scope: '/'}).then(function() {
+            navigator.serviceWorker.register('/webpush-service-worker.js', {scope: './'}).then(function() {
                 sendMessageToServiceWorker({test: true}).then(function(){
                     if (autoSubscribe && autoSubscribe === true && parent === window) {
                         subscribe();
