@@ -10,6 +10,7 @@
     'use strict';
 
     var Events, Support, Template, Params, Lib,
+        API_VERSION = '',
         API_END_POINT = ((self.location.href + '').indexOf('local.getmo.') === -1) ? 'https://api.getmo.com.br' : 'https://local.getmo.api';
 
     /*
@@ -70,31 +71,31 @@
     Support.prototype._checkFeature = function (feature) {
         switch (feature) {
         case 'postMessage':
-            return self.hasOwnProperty('postMessage');
+            return 'postMessage' in self;
         case 'Notification':
-            return self.hasOwnProperty('Notification');
+            return 'Notification' in self;
         case 'localStorage':
             try {
-                return (self.hasOwnProperty('localStorage') && self.localStorage !== null);
+                return ('localStorage' in self && self.localStorage !== null);
             } catch (e) {
                 return false;
             }
             break;
         case 'permission':
-            return self.Notification.hasOwnProperty('permission');
+            return 'permission' in self.Notification;
         case 'showNotification':
             try {
-                return self.ServiceWorkerRegistration.prototype.hasOwnProperty('showNotification');
+                return 'showNotification' in self.ServiceWorkerRegistration.prototype;
             } catch (e) {
                 return;
             }
             break;
         case 'serviceWorker':
-            return self.navigator.hasOwnProperty('serviceWorker');
+            return 'serviceWorker' in self.navigator;
         case 'PushManager':
-            return self.hasOwnProperty('PushManager');
+            return 'PushManager' in self;
         case 'pushNotification':
-            return self.safari.hasOwnProperty('pushNotification');
+            return 'pushNotification' in self.safari;
         }
 
         return true;
@@ -518,7 +519,7 @@
      *
      */
     Lib = function () {
-        this.version = '';
+        this.version = API_VERSION;
         this.iframe = self.document.createElement('iframe');
         this.popup = null;
     };
@@ -621,10 +622,10 @@
             that.events.one(data.eventId, function (e) {
                 clearTimeout(timeout);
 
-                if (e.data.params && typeof e.data.params === 'object') {
-                    that.params._set(e.data.params);
+                if (e.detail && e.detail.params && typeof e.detail.params === 'object') {
+                    that.params._set(e.detail.params);
                 }
-                resolve(e.data);
+                resolve(e.detail);
             });
 
             timeout = setTimeout(function () {
