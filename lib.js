@@ -727,7 +727,7 @@
     Lib.prototype._openPopUp = function () {
 
         var width = 440,
-            height = 380,
+            height = 330,
             left = (self.screen.width / 2) - (width / 2),
             top = (self.screen.height / 2) - (height / 2),
             config = 'toolbar=no,location=no,status=no,menubar=no,scrollbars=no,resizable=no,width=' + width + ',height=' + height + ',left=' + left + ',top=' + top,
@@ -807,61 +807,73 @@
                                 break;
                             }
                         case 'registered-redirect':
-                            var params = { callback: self.location.href };
-                            if (that.params._get('templateEndPoint')) {
-                                self.fetch(that.params._get('templateEndPoint')).then(function (response) {
-                                    response.text().then(function (html) {
-                                        template = new Template(that.params._get('templateEndPoint'));
-                                        template._cleanAndPrepareHtml(html).then(function (newHtml) {
-                                            if (newHtml.length > 5232400) {
-                                                console.error('Your template is too big!');
-                                            } else {
-                                                that._postMessageToIframe('ping', {
-                                                    template: newHtml
-                                                }).then(function () {
-                                                    params.subscribe = true;
-                                                    self.location.href = that.iframe.src + '?' + that._encodeParams(params);
-                                                }, function () {
-                                                    console.error('postMessage timeout!');
+
+                            that.checkStatus().then(function (status) {
+                                if (status === 'denied') {
+                                    console.warn('The user has denied the permission to receive notifications for this domain, until the permission are manually changed we cannot send data.');
+                                    // todo: give the user better message, and understangind
+                                    return;
+                                }
+                                if (status === 'default') {
+                                    var params = { callback: self.location.href };
+                                    if (that.params._get('templateEndPoint')) {
+                                        self.fetch(that.params._get('templateEndPoint')).then(function (response) {
+                                            response.text().then(function (html) {
+                                                template = new Template(that.params._get('templateEndPoint'));
+                                                template._cleanAndPrepareHtml(html).then(function (newHtml) {
+                                                    if (newHtml.length > 5232400) {
+                                                        console.error('Your template is too big!');
+                                                    } else {
+                                                        that._postMessageToIframe('ping', {
+                                                            template: newHtml
+                                                        }).then(function () {
+                                                            params.subscribe = true;
+                                                            self.location.href = that.iframe.src + '?' + that._encodeParams(params);
+                                                        }, function () {
+                                                            console.error('postMessage timeout!');
+                                                        });
+                                                    }
+                                                }, function (e) {
+                                                    console.error(e);
                                                 });
-                                            }
+                                            });
                                         }, function (e) {
-                                            console.error(e);
+                                            console.error('Template target error!', e);
                                         });
-                                    });
-                                }, function (e) {
-                                    console.error('Template target error!', e);
-                                });
-                            } else {
-                                imageUrl = that.params._get('templateImageUrl');
-                                if (imageUrl && imageUrl.indexOf('https') === -1) {
-                                    template = new Template();
-                                    template._loadImageBase64FromUrl(imageUrl).then(function (base64) {
-                                        that._postMessageToIframe('ping', {
-                                            templateImageBase64: base64
-                                        }).then(function () {
+                                    } else {
+                                        imageUrl = that.params._get('templateImageUrl');
+                                        if (imageUrl && imageUrl.indexOf('https') === -1) {
+                                            template = new Template();
+                                            template._loadImageBase64FromUrl(imageUrl).then(function (base64) {
+                                                that._postMessageToIframe('ping', {
+                                                    templateImageBase64: base64
+                                                }).then(function () {
+                                                    if (!popupFail) {
+                                                        that._openPopUp();
+                                                    } else {
+                                                        self.location.href = that.iframe.src + '?' + that._encodeParams(params);
+                                                    }
+                                                }, function (e) {
+                                                    console.error(e);
+                                                });
+                                            }, function (e) {
+                                                console.error(e);
+                                            });
+                                        } else {
                                             if (!popupFail) {
+                                                // if (!that.params._get('hwid') || !that.params._get('regid')) {
+                                                //  ???
+                                                // }
                                                 that._openPopUp();
                                             } else {
                                                 self.location.href = that.iframe.src + '?' + that._encodeParams(params);
                                             }
-                                        }, function (e) {
-                                            console.error(e);
-                                        });
-                                    }, function (e) {
-                                        console.error(e);
-                                    });
-                                } else {
-                                    if (!popupFail) {
-                                        // if (!that.params._get('hwid') || !that.params._get('regid')) {
-                                        //  ???
-                                        // }
-                                        that._openPopUp();
-                                    } else {
-                                        self.location.href = that.iframe.src + '?' + that._encodeParams(params);
+                                        }
                                     }
                                 }
-                            }
+                            }, function (e) {
+                                console.error(e);
+                            });
                             break;
                         }
                     }, function () {
@@ -972,20 +984,20 @@
 
                         switch (data.status) {
                             case 'subscribed':
-                            resolve(that);
-                            break;
-                        case 'subscribed-error':
-                            reject('error');
-                            break;
-                        case 'subscribed-default':
-                            reject('default');
-                            break;
-                        case 'subscribed-denied':
-                            reject('denied');
-                            break;
-                        default:
-                            console.error('No "data.status" match');
-                            reject('error');
+                                resolve(that);
+                                break;
+                            case 'subscribed-error':
+                                reject('error');
+                                break;
+                            case 'subscribed-default':
+                                reject('default');
+                                break;
+                            case 'subscribed-denied':
+                                reject('denied');
+                                break;
+                            default:
+                                console.error('No "data.status" match');
+                                reject('error');
                         }
                     }, function (e) {
                         console.error(e);

@@ -474,6 +474,13 @@
                     regex = /[?&]([^=#]+)=([^&#]*)/g,
                     match;
 
+            if (Notification.permission === 'denied') {
+                document.getElementById('content').className = 'denied';
+                document.getElementById('obs-container').className = 'denied';
+                document.getElementById('obs-container').innerHTML = 'Você bloqueou notificações para esse site. Para receber notificações abra uma nova aba e acesse o endereço abaixo:';
+                window.resizeTo(440, 430);
+            }
+
             while(match = regex.exec(window.location.href)) {
                 getParams[match[1]] = match[2];
             }
@@ -558,24 +565,28 @@
         if (window.addEventListener) {
             window.addEventListener('message', processMessageFromParent, false);
             window.addEventListener('load', loaded);
-
         } else {
             window.attachEvent('onmessage', processMessageFromParent);
             window.attachEvent('onload', loaded);
         }
-        window.onbeforeunload = function() {  }
-
-
     </script>
 </head>
 <body style="margin:0; overflow:hidden;">
 <style scoped>
     body { background: #F6F5F8; }
-    #content { font-family: 'Open Sans', sans-serif; width: 400px; margin: 30px auto; text-align: center; }
-    #content.hidden { display: none; }
-    .bt { padding: 15px; border: 1px solid; border-radius: 3px; cursor: pointer; }
+    #content { font-family: 'Open Sans', sans-serif; width: 400px; margin: 20px auto; text-align: center; }
+    #obs-container { font-size: 12px; color: #BBB; }
+    #obs-container.denied { font-size: 13px; color: #9e2d25; }
+    .bt { padding: 15px; border: 1px solid; border-radius: 3px; cursor: pointer; text-decoration: none }
     .bt.no{ background-color: #F6F5F8; border-color: #C7C7C7; color: #616161; }
     .bt.yes{ background-color: #30849b; border-color: #287388; margin-left: 140px; color: #EFEFEF; }
+    .bt.config { background-color: #4fc246; border-color: #43b33b; color: #ffffff; }
+    .default .bt.no, .default .bt.yes { display: inline-block; }
+    .default .bt.config { display: none; }
+    .denied .bt.no, .denied .bt.yes, .normal .bt.config { display: none; }
+    .denied .bt.config { display: inline-block; }
+    .setting-url { display: none; }
+    .denied .setting-url { display: block; }
     #loading-container {
         display: flex; justify-content: center; align-items: center;
         position: fixed; width: 100%; height: 100%; top: -100%; left: 0; background-color: #FFF;
@@ -583,10 +594,10 @@
     }
     #loading-container.loading { top: 0; }
 </style>
-<div id="content" class="">
+<div id="content" class="normal">
     <div style="color: rgba(0,0,0,.7)">
         <h1 id="content-title" style="font-size: 20px; margin-bottom: 5px;">{{ siteName }}</h1>
-        <h2 style="font-size: 18px; margin-top: 5px; margin-bottom: 35px;">deseja enviar notificações para você!</h2>
+        <h2 style="font-size: 18px; margin-top: 5px; margin-bottom: 20px;">deseja enviar notificações para você!</h2>
     </div>
     <div style="width: 360px; height: 80px; margin: 0 auto; overflow: hidden; background: url(https://cdn.getmo.com.br/images/notification-mockup.jpg); box-shadow: 0px 0px 4px #666;">
         <div id="image-container" style="margin-right: 15px; width: 80px; height: 80px; float: left">
@@ -598,11 +609,13 @@
             <div id="uri-container" style="color: #aaa; font-size: 13px; position: absolute; bottom: 5px">webpush.imobiliariaducati.com.br</div>
         </div>
     </div>
-    <p style="font-size: 10px; color: #BBB;">(você pode cancelar a qualque hora)</p>
-    <hr style="margin-top: 30px">
+    <p id="obs-container">(você pode cancelar a qualque hora)</p>
+    <span class="setting-url">chrome://settings/contentExceptions#notifications</span>
+    <hr style="margin-top: 20px">
     <div style="margin: 15px 0">
-        <button onclick="closeOrRedirect()" id="no-bt" class="bt no">Não, Obrigado</button>
-        <button onclick="subscribe()" id="yes-bt" class="bt yes">CONTINUAR</button>
+        <button onclick="closeOrRedirect()" class="bt no">Não, Obrigado</button>
+        <button onclick="subscribe()" class="bt yes">CONTINUAR</button>
+        <button onclick="closeOrRedirect()" class="bt config">Voltar</button>
     </div>
     <a href="http://www.getmo.com.br" target="_blank">
         <img width="90" height="20" src="https://cdn.getmo.com.br/images/logo-getmo.png" alt="Getmo Web Push">
