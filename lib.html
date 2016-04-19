@@ -3,7 +3,7 @@
     <meta charset="utf-8">
     <link rel="manifest" href="/webpush-chrome-manifest.json">
     <script>
-        var callback = '', params = {}, apiEndPoint = ((self.location.href+'').indexOf('local.getmo.') === -1) ? 'https://api.getmo.com.br' : 'https://local.getmo.api';
+        var callback = '', params = {}, autoSubscribe = false, swHasLoaded = false, apiEndPoint = ((self.location.href+'').indexOf('local.getmo.') === -1) ? 'https://api.getmo.com.br' : 'https://local.getmo.api';
         function setParams(newParams) {
             if (typeof(newParams) === 'object'){
                 try {
@@ -28,7 +28,7 @@
             } else {
                 try {
                     var lsParams = JSON.parse(localStorage.getItem('smartpush_params'));
-                    if (lsParams[name]) {
+                    if (lsParams[name] || lsParams[name] === false) {
                         params[name] = lsParams[name];
                         return lsParams[name];
                     } else {
@@ -58,46 +58,49 @@
                 if (parent !== window) {
                     parent.postMessage(data, '*');
                 } else {
-                    if (callback) {
-                        window.location.href = callback;
+                    if (window.opener) {
+                        window.opener.postMessage(data, '*');
+                    }
+                    if (autoSubscribe) {
+                        closeOrRedirect();
+                    } else if (data.status == 'denied' || data.status == 'subscribed') {
+                        closeOrRedirect();
                     }
                 }
             }
         }
         function processMessageFromParent(e) {
-
             if (e.data && typeof(e.data) === 'object' && e.data.eventId) {
-
                 var eventId = e.data.eventId;
-
                 if (e.data.params && typeof(e.data.params) === 'object') {
                     setParams(e.data.params);
                 }
-
                 switch(e.data.action) {
-                    case 'initializeServiceWorker':
+                    case 'initSubscribe':
                         if (getParam('platform') == 'CHROME' || getParam('platform') == 'FIREFOX') {
                             if (!getParam('setupEndPoint')) {
                                 sendMessageToServiceWorker({test: true}).then(function(){
                                     if (getParam('hwid') && getParam('regid')) {
                                         sendMessageToParent({
                                             eventId: eventId,
-                                            status: 'ready'
+                                            status: 'ready',
+                                            params: JSON.parse(localStorage.getItem('smartpush_params'))
                                         });
                                     } else {
-                                        initializeServiceWorker(false, eventId);
+                                        initializeServiceWorker(eventId);
                                     }
                                 }, function() {
-                                    initializeServiceWorker(false, eventId);
+                                    initializeServiceWorker(eventId);
                                 });
                             } else {
                                 if (getParam('hwid') && getParam('regid')) {
                                     sendMessageToParent({
                                         eventId: eventId,
-                                        status: 'ready'
+                                        status: 'ready',
+                                        params: JSON.parse(localStorage.getItem('smartpush_params'))
                                     });
                                 } else {
-                                    initializeServiceWorker(false, eventId);
+                                    initializeServiceWorker(eventId);
                                 }
                             }
                         } else if (getParam('platform') == 'SAFARI') {
@@ -107,7 +110,7 @@
                             });
                         }
                         break;
-                    case 'subscribe':
+                    case 'doSubscribe':
                         subscribe(eventId);
                         break;
                     case 'unsubscribe':
@@ -122,15 +125,6 @@
                             params: JSON.parse(localStorage.getItem('smartpush_params'))
                         });
                         break;
-                    case 'template':
-                        var template = e.data.template;
-                        if (template) {
-                            localStorage.setItem('smartpush_template', template);
-                        }
-                        sendMessageToParent({
-                            eventId: eventId
-                        });
-                        break;
                     default:
                         sendMessageToParent({
                             eventId: eventId,
@@ -140,26 +134,32 @@
             }
         }
 
-        function initializeServiceWorker(autoSubscribe, eventId) {
+        function initializeServiceWorker(eventId) {
             navigator.serviceWorker.register('/webpush-service-worker.js', {scope: '/'}).then(function() {
                 sendMessageToServiceWorker({test: true}).then(function(){
+                    swHasLoaded = true;
                     if (autoSubscribe && autoSubscribe === true && parent === window) {
+                        insertTemplate();
                         subscribe();
                     } else {
                         sendMessageToParent({
                             eventId: eventId,
-                            status: 'ready'
+                            status: 'ready',
+                            params: JSON.parse(localStorage.getItem('smartpush_params'))
                         });
                     }
                 }, function(){
                     setTimeout(function(){
                         sendMessageToServiceWorker({test: true}).then(function(){
+                            swHasLoaded = true;
                             if (autoSubscribe && autoSubscribe === true && parent === window) {
+                                insertTemplate();
                                 subscribe();
                             } else {
                                 sendMessageToParent({
                                     eventId: eventId,
-                                    status: 'ready'
+                                    status: 'ready',
+                                    params: JSON.parse(localStorage.getItem('smartpush_params'))
                                 });
                             }
                         }, function() {
@@ -325,6 +325,11 @@
             return query.join('&');
         }
         function subscribe(eventId) {
+            if(!swHasLoaded) {
+                autoSubscribe = true;
+                initializeServiceWorker(eventId);
+                return;
+            }
             Notification.requestPermission(function(permission) {
                 if (permission == 'granted') {
                     navigator.serviceWorker.ready.then(function(registration) {
@@ -431,7 +436,40 @@
                 });
             });
         }
-        function instantiateParams() {
+        function closeOrRedirect() {
+            try {
+                if (!window.close()) {
+                    if (callback) {
+                        window.location.href = callback;
+                    }
+                }
+            } catch (e) {
+                if (callback) {
+                    window.location.href = callback;
+                }
+            }
+        }
+        function insertTemplate() {
+            var template = getParam('template');
+            if (template) {
+                if (getParam('platform') == 'CHROME') {
+                    var newDoc = document.open('text/html', 'replace');
+                    newDoc.write(template);
+                    newDoc.close();
+                }
+                if (getParam('platform') == 'FIREFOX') {
+                    var iframe = document.createElement('iframe');
+                    iframe.width = '100%';
+                    iframe.height = '100%';
+                    iframe.frameBorder = '0';
+                    iframe.srcdoc = template;
+
+                    document.body.innerHTML = '';
+                    document.body.appendChild(iframe);
+                }
+            }
+        }
+        function loaded() {
             var getParams = {},
                     regex = /[?&]([^=#]+)=([^&#]*)/g,
                     match;
@@ -440,52 +478,114 @@
                 getParams[match[1]] = match[2];
             }
 
-            if (getParams.subscribe && getParams.subscribe == 'true' && getParams.callback) {
+            if (getParams.callback) {
                 callback = decodeURIComponent(getParams.callback);
-                initializeServiceWorker(true);
+            }
 
-                var template = getParam('templateContent');
-                if (template) {
-                    if (getParam('platform') == 'CHROME') {
-                        var newDoc = document.open('text/html', 'replace');
-                        newDoc.write(template);
-                        newDoc.close();
-                    }
-                    if (getParam('platform') == 'FIREFOX') {
-                        var iframe = document.createElement('iframe');
-                        iframe.width = '100%';
-                        iframe.height = '100%';
-                        iframe.frameBorder = '0';
-                        iframe.srcdoc = template;
+            if (getParams.subscribe && getParams.subscribe === 'true') {
+                autoSubscribe = true;
+                initializeServiceWorker();
+            } else if (!getParams.subscribe && window && window.parent && parent === window) {
+                initializeServiceWorker();
+                var counter = 0,
+                    control = {},
+                    interval,
+                    titleElem,
+                    imageContainer,
+                    loadingElem,
+                    uriElem;
 
-                        document.body.innerHTML = '';
-                        document.body.appendChild(iframe);
+                titleElem = document.getElementById('content-title');
+                imageContainer = document.getElementById('image-container');
+                loadingElem = document.getElementById('loading-container');
+                uriElem = document.getElementById('uri-container');
+
+                match = window.location.href.match(/^((https?:\/\/(.+?))\/)/);
+                uriElem.innerHTML = match[3];
+
+                interval = setInterval(function() {
+
+                    if (!control.siteName) {
+                        var templateSiteName = getParam('templateSiteName');
+                        if (templateSiteName) {
+                            titleElem.innerHTML = templateSiteName;
+                            control.siteName = true;
+                        } else if (templateSiteName === false) {
+                            titleElem.innerHTML = match[0];
+                            control.siteName = true;
+                        }
                     }
-                }
+                    if (!control.image) {
+                        var templateImageUrl = getParam('templateImageUrl');
+                        if (templateImageUrl) {
+                            var templateImageBase64 = getParam('templateImageBase64');
+                            if (templateImageBase64) {
+                                var image = new window.Image();
+                                image.width = 80;
+                                image.height = 80;
+                                image.src = templateImageBase64;
+                                imageContainer.innerHTML = image.outerHTML;
+                                control.image = true;
+                            }
+                        } else if (templateImageUrl === false) {
+                            control.image = true;
+                        }
+                    }
+                    if (!control.initialized) {
+                        control.initialized = swHasLoaded;
+                    }
+
+                    if (control.siteName === true && control.image === true && control.initialized === true) {
+                        clearInterval(interval);
+                        loadingElem.className = '';
+                        return;
+                    }
+
+                    if (counter > 100) {
+                        clearInterval(interval);
+
+                        if (!control.siteName) {
+                            titleElem.innerHTML = match[0];
+                        }
+
+                        loadingElem.className = '';
+                    }
+                    counter = counter + 1;
+
+                }, 100);
             }
         }
         if (window.addEventListener) {
             window.addEventListener('message', processMessageFromParent, false);
-            window.addEventListener('load', instantiateParams);
+            window.addEventListener('load', loaded);
+
         } else {
             window.attachEvent('onmessage', processMessageFromParent);
-            window.attachEvent('onload', instantiateParams);
+            window.attachEvent('onload', loaded);
         }
+        window.onbeforeunload = function() {  }
+
+
     </script>
 </head>
 <body style="margin:0; overflow:hidden;">
 <style scoped>
     body { background: #F6F5F8; }
+    #content { font-family: 'Open Sans', sans-serif; width: 400px; margin: 30px auto; text-align: center; }
+    #content.hidden { display: none; }
     .bt { padding: 15px; border: 1px solid; border-radius: 3px; cursor: pointer; }
     .bt.no{ background-color: #F6F5F8; border-color: #C7C7C7; color: #616161; }
     .bt.yes{ background-color: #30849b; border-color: #287388; margin-left: 140px; color: #EFEFEF; }
-    .loading {
-
+    #loading-container {
+        display: flex; justify-content: center; align-items: center;
+        position: fixed; width: 100%; height: 100%; top: -100%; left: 0; background-color: #FFF;
+        -webkit-transition: top 1s; -moz-transition: top 1s; transition: top 1s;
     }
+    #loading-container.loading { top: 0; }
 </style>
-<div id="content" style="font-family: 'Open Sans', sans-serif; width: 400px; margin: 30px auto; text-align: center">
+<div id="content" class="">
     <div style="color: rgba(0,0,0,.7)">
-        <h1 id="content-title" style="font-size: 20px; margin-bottom: 5px;">{{ titulo }}</h1>
+        <h1 id="content-title" style="font-size: 20px; margin-bottom: 5px;">{{ siteName }}</h1>
         <h2 style="font-size: 18px; margin-top: 5px; margin-bottom: 35px;">deseja enviar notificações para você!</h2>
     </div>
     <div style="width: 360px; height: 80px; margin: 0 auto; overflow: hidden; background: url(https://cdn.getmo.com.br/images/notification-mockup.jpg); box-shadow: 0px 0px 4px #666;">
@@ -495,21 +595,21 @@
         <div style="float: left; text-align: left; margin-top: 10px; position: relative; width: 245px; height: 70px">
             <div style="font-size: 16px; white-space: nowrap;">Título da Notificação</div>
             <div style="font-size: 12px; white-space: nowrap; position: absolute; top: 22px">Exemplo de texto da Notificação</div>
-            <div style="color: #aaa; font-size: 13px; position: absolute; bottom: 5px">webpush.imobiliariaducati.com.br</div>
+            <div id="uri-container" style="color: #aaa; font-size: 13px; position: absolute; bottom: 5px">webpush.imobiliariaducati.com.br</div>
         </div>
     </div>
     <p style="font-size: 10px; color: #BBB;">(você pode cancelar a qualque hora)</p>
     <hr style="margin-top: 30px">
     <div style="margin: 15px 0">
-        <button onclick="window.close()" id="no-bt" class="bt no">Não, Obrigado</button>
+        <button onclick="closeOrRedirect()" id="no-bt" class="bt no">Não, Obrigado</button>
         <button onclick="subscribe()" id="yes-bt" class="bt yes">CONTINUAR</button>
     </div>
     <a href="http://www.getmo.com.br" target="_blank">
         <img width="90" height="20" src="https://cdn.getmo.com.br/images/logo-getmo.png" alt="Getmo Web Push">
     </a>
+    <div id="loading-container" class="loading">
+        loading...
+    </div>
 </div>
-<script>
-
-</script>
 </body>
 </html>

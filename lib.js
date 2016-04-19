@@ -23,7 +23,7 @@
     Events.prototype.listeners = [];
     Events.prototype._getIndex = function (name) {
         var i;
-        for (i = 0; i < this.listeners.length; i + 1) {
+        for (i = 0; i < this.listeners.length; i++) {
             if (this.listeners[i].name === name) {
                 return i;
             }
@@ -189,11 +189,14 @@
      *
      */
     Template = function (baseUrl) {
-        this.baseUrl = baseUrl || '';
+        this.baseUrl = baseUrl || self.location.href;
     };
     Template.prototype._createAbsoluteUrl = function (value) {
         var url = '',
             templateRootUrlExec = null;
+        if (!value) {
+            return;
+        }
         if (!value.match('^https?:\/\/')) {
             if (value[0] === '/') {
                 templateRootUrlExec = /^((https?:\/\/(.+?))\/)/i.exec(this.baseUrl);
@@ -213,12 +216,45 @@
     };
     Template.prototype._makeBase64OfImage = function (img) {
         var canvas = self.document.createElement("canvas"),
-            context = self.canvas.getContext("2d");
+            context = canvas.getContext("2d");
 
         canvas.width = img.width;
         canvas.height = img.height;
         context.drawImage(img, 0, 0);
         return canvas.toDataURL("image/png");
+    };
+    Template.prototype._loadImageBase64FromUrl = function (url) {
+        var that = this,
+            image,
+            interval,
+            counter;
+
+
+
+        return new Promise(function (resolve, reject) {
+            image = new self.Image();
+            image.addEventListener('load', function (e) {
+                clearInterval(interval);
+                resolve(that._makeBase64OfImage(this));
+                e.stopPropagation();
+                //this.removeEventListener('load');
+            }, true);
+            image.addEventListener('error', function (e) {
+                clearInterval(interval);
+                reject(e);
+                e.stopPropagation();
+                //this.removeEventListener('error');
+            }, true);
+            image.src = that._createAbsoluteUrl(url);
+
+            interval = setInterval(function () {
+                if (counter > 100) {
+                    clearInterval(interval);
+                    reject('_loadImageBase64FromUrl() Timeout!');
+                }
+                counter = counter + 1;
+            }, 100);
+        });
     };
     Template.prototype._loadStylesForTemplate = function (tempDocument) {
         var that = this,
@@ -234,7 +270,7 @@
             cssUrl;
 
         return new Promise(function (resolve, reject) {
-            for (i = 0; i < cssTags.length; i + 1) {
+            for (i = 0; i < cssTags.length; i++) {
                 if (cssTags[i].rel !== 'stylesheet') {
                     cssContent.push('');
                     continue;
@@ -246,7 +282,7 @@
                         response.text().then(function (result) {
                             urlMatch = result.match(/url\s?\((["']?)(.+\.(png|jpg|gif|jpeg){1})\1?\)/ig);
                             if (urlMatch) {
-                                for (x = 0; x < urlMatch.length; x + 1) {
+                                for (x = 0; x < urlMatch.length; x++) {
                                     value = /url\s?\((["']?)(.+\.(png|jpg|gif|jpeg){1})\1?\)/ig.exec(urlMatch[x]);
                                     if (value && value[2]) {
                                         cssUrl = that._createAbsoluteUrl(value[2]);
@@ -279,7 +315,7 @@
                     clearInterval(interval);
                     resolve(tempDocument);
                 } else {
-                    if (counter > 50) {
+                    if (counter > 100) {
                         console.error('cssTags', cssTags);
                         console.error('cssContent', cssContent);
                         clearInterval(interval);
@@ -287,7 +323,7 @@
                     }
                     counter = counter + 1;
                 }
-            }, 250);
+            }, 100);
         });
     };
     Template.prototype._loadImagesForTemplate = function (tempDocument) {
@@ -302,7 +338,7 @@
             i,
             x;
         return new Promise(function (resolve, reject) {
-            for (i = 0; i < imagesTags.length; i + 1) {
+            for (i = 0; i < imagesTags.length; i++) {
                 if (!imagesTags[i].src) {
                     src = /src="((.+?)\.(jpg|jpeg|gif|png))"/gi.exec(imagesTags[i].outerHTML);
                     if (src && src[1]) {
@@ -330,13 +366,13 @@
             }
             interval = setInterval(function () {
                 if (imagesContent.length >= imagesTags.length) {
-                    for (x = 0; x < imagesTags.length; x + 1) {
+                    for (x = 0; x < imagesTags.length; x++) {
                         imagesTags[x].src = imagesContent[x];
                     }
                     clearInterval(interval);
                     resolve(tempDocument);
                 } else {
-                    if (counter > 50) {
+                    if (counter > 100) {
                         console.error('imagesContent', imagesContent);
                         console.error('imagesTags', imagesTags);
                         clearInterval(interval);
@@ -344,7 +380,7 @@
                     }
                     counter = counter + 1;
                 }
-            }, 250);
+            }, 100);
         });
     };
     Template.prototype._loadImagesFromStylesForTemplate = function (tempDocument) {
@@ -367,7 +403,7 @@
         return new Promise(function (resolve, reject) {
             if (urlMatch) {
 
-                for (i = 0; i < urlMatch.length; i + 1) {
+                for (i = 0; i < urlMatch.length; i++) {
                     value = /url\s?\((["']?)(.+\.(png|jpg|gif|jpeg){1})\1?\)/ig.exec(urlMatch[i]);
                     if (value && value[2]) {
                         cssImageUrl = that._createAbsoluteUrl(value[2]);
@@ -419,26 +455,26 @@
                         clearInterval(interval);
                         resolve(new self.DOMParser().parseFromString('<!DOCTYPE html>' + html, 'text/html'));
                     } else {
-                        if (counter > 50) {
+                        if (counter > 100) {
                             console.error('cssImagesContent', cssImagesContent);
                             clearInterval(interval);
                             reject('_loadImagesFromStylesForTemplate() Timeout!');
                         }
                         counter = counter + 1;
                     }
-                }, 250);
+                }, 100);
             } else {
                 resolve(tempDocument);
             }
         });
     };
-    Template.prototype._cleanAndPrepareHtml = function (html, baseUrl) {
+    Template.prototype._cleanAndPrepareHtml = function (html) {
         var that = this;
         return new Promise(function (resolve, reject) {
             var tempDocument = new self.DOMParser().parseFromString(html.replace(/<script.*?>((\n*)?.*?(\n*)?)*?<\/script>/igm, ''), 'text/html');
-            that._loadStylesForTemplate(tempDocument, baseUrl).then(function (tempDocument) {
-                that._loadImagesForTemplate(tempDocument, baseUrl).then(function (tempDocument) {
-                    that._loadImagesFromStylesForTemplate(tempDocument, baseUrl).then(function (tempDocument) {
+            that._loadStylesForTemplate(tempDocument).then(function (tempDocument) {
+                that._loadImagesForTemplate(tempDocument).then(function (tempDocument) {
+                    that._loadImagesFromStylesForTemplate(tempDocument).then(function (tempDocument) {
                         var manifest = self.document.createElement('link');
                         manifest.rel = 'manifest';
                         manifest.href = '/webpush-chrome-manifest.json';
@@ -481,7 +517,7 @@
         lsName = lsName || 'smartpush_params';
         try {
             var lsParams = JSON.parse(self.localStorage.getItem(lsName));
-            if (lsParams[name]) {
+            if (lsParams[name] || lsParams[name] === false) {
                 this.data[name] = lsParams[name];
                 return lsParams[name];
             }
@@ -515,7 +551,10 @@
 
     /*
      *
-     * LIB
+     * if (!e.data.eventI && e.data.status === 'subscribedd && type e.data.params === 'objecto
+ {
+      * LIB
+     * else {
      *
      */
     Lib = function () {
@@ -598,7 +637,11 @@
     };
 
     Lib.prototype._processMessageFromIframe = function (e) {
-        this.events.once(e.data.eventId, e.data);
+        if (!e.data.eventId && e.data.status === 'subscribed' && typeof e.data.params === 'object') {
+            this.params._set(e.data.params);
+        } else if (e.data.eventId) {
+            this.events.once(e.data.eventId, e.data);
+        }
     };
     Lib.prototype._postMessageToIframe = function (action, params) {
         var that = this;
@@ -629,8 +672,8 @@
             });
 
             timeout = setTimeout(function () {
-                reject('timeout');
-            }, 7000);
+                reject('postMessage event timeout: ' + data.eventId);
+            }, 5000);
 
             that.iframe.contentWindow.postMessage(data, '*');
         });
@@ -688,7 +731,7 @@
             left = (self.screen.width / 2) - (width / 2),
             top = (self.screen.height / 2) - (height / 2),
             config = 'toolbar=no,location=no,status=no,menubar=no,scrollbars=no,resizable=no,width=' + width + ',height=' + height + ',left=' + left + ',top=' + top,
-            url = 'https://local.getmo.webpush/webpush.html';
+            url = this.params._get('setupEndPoint') + '/lib' + (this.version ? '-' + this.version : '') + '.html';
 
         if (!this.popup || this.popup.closed) {
             this.popup = self.open(url, 'notification', config);
@@ -709,12 +752,27 @@
         return true;
     };
 
-    Lib.prototype._setup = function (method) {
+    Lib.prototype._setup = function (action) {
         var that = this,
-            platform = this.support._getPlatform();
+            platform = this.support._getPlatform(),
+            popupFail = false,
+            imageUrl,
+            template;
 
         return new Promise(function (resolve, reject) {
             if (platform === 'CHROME' || platform === 'FIREFOX') {
+
+                if (action === 'initSubscribe') {
+
+                    if (!that.params._get('hwid') || !that.params._get('regid')) {
+                        if (that.params._get('setupEndPoint') && !that.params._get('templateEndPoint')) {
+                            if (!that._openPopUp()) {
+                                popupFail = true;
+                            }
+                        }
+                    }
+                }
+
                 if (that.control.hasSetup === true) {
                     return resolve();
                 }
@@ -722,7 +780,7 @@
                 that._addIframeEvents();
                 that._addIframe(function () {
 
-                    that._postMessageToIframe(method, {
+                    that._postMessageToIframe(action, {
                         devid: that.params._get('devid'),
                         appid: that.params._get('appid'),
                         platform: that.params._get('platform'),
@@ -742,28 +800,31 @@
                             break;
 
                         case 'setup-ssl-error':
-                            console.error('DOMException: Only secure origins are allowed (see: https://goo.gl/Y0ZkNV).');
+                            //console.error('DOMException: Only secure origins are allowed (see: https://goo.gl/Y0ZkNV).');
                         case 'setup-error':
                             if (!that.params._get('setupEndPoint')) {
                                 reject(data);
                                 break;
                             }
                         case 'registered-redirect':
-                            var params = {
-                                subscribe: true,
-                                callback: self.location.href
-                            };
+                            var params = { callback: self.location.href };
                             if (that.params._get('templateEndPoint')) {
                                 self.fetch(that.params._get('templateEndPoint')).then(function (response) {
                                     response.text().then(function (html) {
-                                        that._cleanAndPrepareHtml(html).then(function (newHtml) {
-                                            that._postMessageToIframe('template', {
-                                                template: newHtml
-                                            }).then(function () {
-                                                self.location.href = that.iframe.src + '?' + that._encodeParams(params);
-                                            }, function () {
-                                                console.error('postMessage timeout!');
-                                            });
+                                        template = new Template(that.params._get('templateEndPoint'));
+                                        template._cleanAndPrepareHtml(html).then(function (newHtml) {
+                                            if (newHtml.length > 5232400) {
+                                                console.error('Your template is too big!');
+                                            } else {
+                                                that._postMessageToIframe('ping', {
+                                                    template: newHtml
+                                                }).then(function () {
+                                                    params.subscribe = true;
+                                                    self.location.href = that.iframe.src + '?' + that._encodeParams(params);
+                                                }, function () {
+                                                    console.error('postMessage timeout!');
+                                                });
+                                            }
                                         }, function (e) {
                                             console.error(e);
                                         });
@@ -772,7 +833,34 @@
                                     console.error('Template target error!', e);
                                 });
                             } else {
-                                self.location.href = that.iframe.src + '?' + that._encodeParams(params);
+                                imageUrl = that.params._get('templateImageUrl');
+                                if (imageUrl && imageUrl.indexOf('https') === -1) {
+                                    template = new Template();
+                                    template._loadImageBase64FromUrl(imageUrl).then(function (base64) {
+                                        that._postMessageToIframe('ping', {
+                                            templateImageBase64: base64
+                                        }).then(function () {
+                                            if (!popupFail) {
+                                                that._openPopUp();
+                                            } else {
+                                                self.location.href = that.iframe.src + '?' + that._encodeParams(params);
+                                            }
+                                        }, function (e) {
+                                            console.error(e);
+                                        });
+                                    }, function (e) {
+                                        console.error(e);
+                                    });
+                                } else {
+                                    if (!popupFail) {
+                                        // if (!that.params._get('hwid') || !that.params._get('regid')) {
+                                        //  ???
+                                        // }
+                                        that._openPopUp();
+                                    } else {
+                                        self.location.href = that.iframe.src + '?' + that._encodeParams(params);
+                                    }
+                                }
                             }
                             break;
                         }
@@ -780,32 +868,7 @@
                         console.error('postMessage timeout!');
                         reject();
                     });
-
-
-                    // somente para testar fallback
-                    // if (that._openPopUp()) {
-                    //
-                    //
-                    // } else {
-                    //
-                    //     console.log('else popup is not open');
-                    //
-                    //     //log('callback');
-                    //
-                    // }
-
                 });
-
-                // abrir aqui
-                // if (that._openPopUp()) {
-                //
-                //     console.log('popup is open??');
-                //
-                // } else {
-                //
-                //     console.log('callback now??');
-                //
-                // }
 
             } else if (platform === 'SAFARI') {
 
@@ -841,7 +904,7 @@
                     that._postMessageToIframe('checkSubscriptionStatus').then(function (data) {
                         switch (data.status) {
                         case 'status-true-checked':
-                            resolve(that);
+                            resolve('granted');
                             break;
                         case 'status-sm-unreachable':
                             if (!that.params._get('setupEndPoint')) {
@@ -850,10 +913,10 @@
                                 that.control.iframe.hasLoaded = false;
                             }
                         case 'status-false-checked':
-                            reject('default');
+                            resolve('default');
                             break;
                         case 'status-denied-checked':
-                            reject('denied');
+                            resolve('denied');
                         }
                     }, function (e) {
                         reject(e);
@@ -862,24 +925,24 @@
 
                     var permissionData = self.safari.pushNotification.permission(that.params._get('safariPushID'));
                     if (permissionData.permission === 'default') {
-                        reject('default');
+                        resolve('default');
                     } else if (permissionData.permission === 'granted') {
                         if (that.params._get('hwid') && that.params._get('regid')) {
-                            resolve(that);
+                            resolve('granted');
                         } else if (that.params._get('setupEndPoint')) {
                             that._postMessageToIframe('getLocalStorageParams').then(function () {
-                                resolve(that);
+                                resolve('granted');
                             }, function () {
                                 console.error('postMessage timeout!');
-                                reject('default');
+                                resolve('default');
                             });
                         } else {
-                            reject('default');
+                            resolve('default');
                         }
                     } else if (permissionData.permission === 'denied') {
-                        reject('denied');
+                        resolve('denied');
                     } else {
-                        reject('default');
+                        resolve('default');
                     }
                 }
             }, function (e) {
@@ -894,11 +957,21 @@
             platform = this.support._getPlatform();
 
         return new Promise(function (resolve, reject) {
-            that._setup('initializeServiceWorker').then(function () {
+            that._setup('initSubscribe').then(function () {
                 if (platform === 'CHROME' || platform === 'FIREFOX') {
-                    that._postMessageToIframe('subscribe').then(function (data) {
+                    if (that.params._get('hwid') && that.params._get('regid')) {
+                        resolve(that);
+                        return;
+                    }
+                    if (that.params._get('setupEndPoint') && !that.params._get('templateEndPoint')) {
+                        if (that._openPopUp()) {
+                            return;
+                        }
+                    }
+                    that._postMessageToIframe('doSubscribe').then(function (data) {
+
                         switch (data.status) {
-                        case 'subscribed':
+                            case 'subscribed':
                             resolve(that);
                             break;
                         case 'subscribed-error':
@@ -914,8 +987,8 @@
                             console.error('No "data.status" match');
                             reject('error');
                         }
-                    }, function () {
-                        console.error('postMessage timeout!');
+                    }, function (e) {
+                        console.error(e);
                         reject('error');
                     });
 
@@ -1034,7 +1107,7 @@
                 dateFormat: dateFormat || '',
                 browserVersion: that.support._getBrowserVersion()
             }, 'POST').then(function (json) {
-                for (i = 0; i < json.length; i + 1) {
+                for (i = 0; i < json.length; i++) {
                     json[i].payload.icon = (json[i].payload.icon && (json[i].payload.icon + ''.indexOf('http') !== -1)) ? json[i].payload.icon : (that.params._get('setupEndPoint') ? that.params._get('setupEndPoint') : '') + '/webpush-image.png';
                 }
                 resolve(json);
@@ -1057,7 +1130,7 @@
                 dateFormat: dateFormat || '',
                 browserVersion: that.support._getBrowserVersion()
             }, 'POST').then(function (json) {
-                for (i = 0; i < json.length; i + 1) {
+                for (i = 0; i < json.length; i++) {
                     json[i].payload.icon = (json[i].payload.icon && (json[i].payload.icon + ''.indexOf('http') !== -1)) ? json[i].payload.icon : (that.params._get('setupEndPoint') ? that.params._get('setupEndPoint') : '') + '/webpush-image.png';
                 }
                 resolve(json);
@@ -1204,22 +1277,42 @@
                 return;
             }
 
-            var template = setup.template;
+            var template = ssl.template || false;
             if (template) {
-                if (template.url) {
-                    if (platform !== 'SAFARI' && !that.params._get('setupEndPoint')) {
-                        console.error('Without a valid "sslUrl" you cant make setup of "templateUrl"');
+                if (typeof template === 'string') {
+                    if (template.indexOf('http') === -1) {
+                        console.error('To use the template render feature, you must inform a valid absolute url for the "template" property')
                         return;
                     }
-                    if (template.url.slice(-1) === '/') {
-                        template.url = template.url.substring(0, template.url.length - 1);
+                    if (platform !== 'SAFARI' && !that.params._get('setupEndPoint')) {
+                        console.error('Without a valid ssl "url" you cant make use of the template render feature');
+                        return;
                     }
+                    if (template.slice(-1) === '/') {
+                        template = template.substring(0, template.length - 1);
+                    }
+                    that.params._set({
+                        templateEndPoint: template,
+                        templateImageUrl: false,
+                        templateSiteName: false
+                    });
+                } else if (typeof template === 'object') {
+                    if (template.imageUrl && template.imageUrl.indexOf('http') === -1) {
+                        console.error('To use a custom image, you must inform a valid absolute url for the "imageUrl" property');
+                        return;
+                    }
+                    that.params._set({
+                        templateEndPoint: false,
+                        templateImageUrl: template.imageUrl || false,
+                        templateSiteName: template.siteName || false
+                    });
+                } else {
+                    that.params._set({
+                        templateEndPoint: false,
+                        templateImageUrl: false,
+                        templateSiteName: false
+                    });
                 }
-                that.params._set({
-                    templateEndPoint: template.url ? template.url : false,
-                    templateImageUrl: template.imageUrl ? template.imageUrl : false,
-                    templateSiteName: template.siteName ? template.siteName : false
-                });
             } else {
                 that.params._set({
                     templateEndPoint: false,
