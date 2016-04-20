@@ -61,7 +61,6 @@
                     if (window.opener) {
                         window.opener.postMessage(data, '*');
                     }
-                    return;// temp, uncomment
                     if (autoSubscribe) {
                         closeOrRedirect();
                     } else if (data.status == 'denied' || data.status == 'subscribed') {
