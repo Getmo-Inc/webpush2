@@ -202,6 +202,7 @@
                     split = subscription.endpoint.split('/');
                     data.regid = split[(split.length-1)];
                     try {
+                        data.endpoint = subscription.endpoint;
                         data.p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh'))));
                         data.auth = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth'))));
                         setParams({ hasCypher: true });
@@ -214,9 +215,10 @@
                 split = subscription.endpoint.split('/');
                 data.regid = split[(split.length-1)];
                 try {
-                    setParams({ hasCypher: true });
+                    data.endpoint = subscription.endpoint;
                     data.p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh'))));
                     data.auth = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth'))));
+                    setParams({ hasCypher: true });
                 } catch (e) {
                     setParams({ hasCypher: false });
                     console.error(e);
@@ -315,6 +317,7 @@
                     uuid: hwid,
                     platform: 'CHROME',
                     regid: data.regid,
+                    endpoint: data.endpoint,
                     p256dh: data.p256dh,
                     auth: data.auth,
                     device: navigator.userAgent.match(/Chrom(e|ium|eframe)\/([0-9]+)\./i)[0],

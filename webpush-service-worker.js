@@ -80,6 +80,16 @@ self.addEventListener('push', function(e) {
                 return;
             }
 
+            if (e.data) {
+                var payload = e.data.json();
+                return self.registration.showNotification(payload.title, {
+                    body: payload.text,
+                    icon: (payload.icon && (payload.icon+''.indexOf('http') !== -1)) ? payload.icon : (data.setupEndPoint || '') + defaultIcon,
+                    requireInteraction: payload.requireInteraction && payload.requireInteraction == 'true' ? true : false,
+                    tag: payload.campaignId+','+payload.clickUrl
+                });
+            }
+
             var regid = null;
             if ('subscriptionId' in subscription) {
                 regid = subscription.subscriptionId;
