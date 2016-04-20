@@ -61,6 +61,7 @@
                     if (window.opener) {
                         window.opener.postMessage(data, '*');
                     }
+                    return;// temp, uncomment
                     if (autoSubscribe) {
                         closeOrRedirect();
                     } else if (data.status == 'denied' || data.status == 'subscribed') {
@@ -199,27 +200,28 @@
                 if ('subscriptionId' in subscription) {
                     data.regid = subscription.subscriptionId;
                 } else {
-
                     split = subscription.endpoint.split('/');
                     data.regid = split[(split.length-1)];
-
-//                    console.log('subscription', subscription);
-//                    console.log('p256dh', subscription.getKey('p256dh'));
-//                    console.log('auth', subscription.getKey('auth'));
-
-                    //return;
+                    try {
+                        data.p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh'))));
+                        data.auth = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth'))));
+                        setParams({ hasCypher: true });
+                    } catch (e) {
+                        setParams({ hasCypher: false });
+                        console.error(e);
+                    }
                 }
             } else if (getParam('platform') == 'FIREFOX') {
                 split = subscription.endpoint.split('/');
                 data.regid = split[(split.length-1)];
-
-//                console.log('subscription', subscription);
-//                console.log('p256dh', subscription.getKey('p256dh'));
-//                console.log('auth', subscription.getKey('auth'));
-                /*
-                 // use when crypt libs are stable and without vulnerabilities!
-                 data.p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh'))));
-                 */
+                try {
+                    setParams({ hasCypher: true });
+                    data.p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh'))));
+                    data.auth = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth'))));
+                } catch (e) {
+                    setParams({ hasCypher: false });
+                    console.error(e);
+                }
             }
             return data;
         }
@@ -314,6 +316,8 @@
                     uuid: hwid,
                     platform: 'CHROME',
                     regid: data.regid,
+                    p256dh: data.p256dh,
+                    auth: data.auth,
                     device: navigator.userAgent.match(/Chrom(e|ium|eframe)\/([0-9]+)\./i)[0],
                     manufacturer: navigator.vendor,
                     framework: navigator.platform ? navigator.platform : navigator.oscpu
