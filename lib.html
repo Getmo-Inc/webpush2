@@ -142,11 +142,13 @@
                         insertTemplate();
                         subscribe();
                     } else {
-                        sendMessageToParent({
-                            eventId: eventId,
-                            status: 'ready',
-                            params: JSON.parse(localStorage.getItem('smartpush_params'))
-                        });
+                        if (eventId) {
+                            sendMessageToParent({
+                                eventId: eventId,
+                                status: 'ready',
+                                params: JSON.parse(localStorage.getItem('smartpush_params'))
+                            });
+                        }
                     }
                 }, function(){
                     setTimeout(function(){
@@ -163,9 +165,13 @@
                                 });
                             }
                         }, function() {
+                            sendMessageToParent({
+                                eventId: eventId,
+                                status: 'setup-reload'
+                            });
                             window.location.reload();
                         });
-                    }, 200);
+                    }, 250);
                 });
             }, function(error) {
                 if ((error + '').indexOf('Only secure origins are allowed') != -1) {
@@ -188,17 +194,28 @@
             });
         }
         function getDataFromSubscription(subscription) {
-            var data = {};
+            var data = {}, split;
             if (getParam('platform') == 'CHROME') {
                 if ('subscriptionId' in subscription) {
                     data.regid = subscription.subscriptionId;
                 } else {
-                    var split = subscription.endpoint.split('/');
+
+                    split = subscription.endpoint.split('/');
                     data.regid = split[(split.length-1)];
+
+//                    console.log('subscription', subscription);
+//                    console.log('p256dh', subscription.getKey('p256dh'));
+//                    console.log('auth', subscription.getKey('auth'));
+
+                    //return;
                 }
             } else if (getParam('platform') == 'FIREFOX') {
-                var split = subscription.endpoint.split('/');
+                split = subscription.endpoint.split('/');
                 data.regid = split[(split.length-1)];
+
+//                console.log('subscription', subscription);
+//                console.log('p256dh', subscription.getKey('p256dh'));
+//                console.log('auth', subscription.getKey('auth'));
                 /*
                  // use when crypt libs are stable and without vulnerabilities!
                  data.p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh'))));
@@ -394,10 +411,12 @@
                         status: 'denied'
                     });
                 } else {
-                    sendMessageToParent({
-                        eventId: eventId,
-                        status: 'default'
-                    });
+                    if (eventId) {
+                        sendMessageToParent({
+                            eventId: eventId,
+                            status: 'default'
+                        });
+                    }
                 }
             });
         }
@@ -548,7 +567,7 @@
                         return;
                     }
 
-                    if (counter > 100) {
+                    if (counter > 150) {
                         clearInterval(interval);
 
                         if (!control.siteName) {
@@ -559,7 +578,7 @@
                     }
                     counter = counter + 1;
 
-                }, 100);
+                }, 50);
             }
         }
         if (window.addEventListener) {

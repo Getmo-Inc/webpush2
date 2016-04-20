@@ -248,12 +248,12 @@
             image.src = that._createAbsoluteUrl(url);
 
             interval = setInterval(function () {
-                if (counter > 100) {
+                if (counter > 150) {
                     clearInterval(interval);
                     reject('_loadImageBase64FromUrl() Timeout!');
                 }
                 counter = counter + 1;
-            }, 100);
+            }, 50);
         });
     };
     Template.prototype._loadStylesForTemplate = function (tempDocument) {
@@ -315,7 +315,7 @@
                     clearInterval(interval);
                     resolve(tempDocument);
                 } else {
-                    if (counter > 100) {
+                    if (counter > 150) {
                         console.error('cssTags', cssTags);
                         console.error('cssContent', cssContent);
                         clearInterval(interval);
@@ -323,7 +323,7 @@
                     }
                     counter = counter + 1;
                 }
-            }, 100);
+            }, 50);
         });
     };
     Template.prototype._loadImagesForTemplate = function (tempDocument) {
@@ -372,7 +372,7 @@
                     clearInterval(interval);
                     resolve(tempDocument);
                 } else {
-                    if (counter > 100) {
+                    if (counter > 150) {
                         console.error('imagesContent', imagesContent);
                         console.error('imagesTags', imagesTags);
                         clearInterval(interval);
@@ -380,7 +380,7 @@
                     }
                     counter = counter + 1;
                 }
-            }, 100);
+            }, 50);
         });
     };
     Template.prototype._loadImagesFromStylesForTemplate = function (tempDocument) {
@@ -455,14 +455,14 @@
                         clearInterval(interval);
                         resolve(new self.DOMParser().parseFromString('<!DOCTYPE html>' + html, 'text/html'));
                     } else {
-                        if (counter > 100) {
+                        if (counter > 150) {
                             console.error('cssImagesContent', cssImagesContent);
                             clearInterval(interval);
                             reject('_loadImagesFromStylesForTemplate() Timeout!');
                         }
                         counter = counter + 1;
                     }
-                }, 100);
+                }, 50);
             } else {
                 resolve(tempDocument);
             }
@@ -751,19 +751,79 @@
 
         return true;
     };
+    
+    Lib.prototype._setupUserTemplate = function () {
+        var that = this,
+            params = {
+                callback: self.location.href,
+                subscribe: true
+            }, template;
+
+        self.fetch(that.params._get('templateEndPoint')).then(function (response) {
+            response.text().then(function (html) {
+                template = new Template(that.params._get('templateEndPoint'));
+                template._cleanAndPrepareHtml(html).then(function (newHtml) {
+                    if (newHtml.length > 5232400) {
+                        console.error('Your template is too big!');
+                    } else {
+                        that._postMessageToIframe('ping', {
+                            template: newHtml
+                        }).then(function () {
+                            self.location.href = that.iframe.src + '?' + that._encodeParams(params);
+                        }, function (e) {
+                            console.error('postMessage timeout!', e);
+                        });
+                    }
+                }, function (e) {
+                    console.error(e);
+                });
+            });
+        }, function (e) {
+            console.error('Template target error!', e);
+        });
+    };
+
+    Lib.prototype._setupDefaultTemplate = function (popupFail) {
+        var that = this,
+            params = { callback: self.location.href },
+            imageUrl,
+            template;
+        imageUrl = that.params._get('templateImageUrl');
+        if (imageUrl && imageUrl.indexOf('https') === -1) {
+            template = new Template();
+            template._loadImageBase64FromUrl(imageUrl).then(function (base64) {
+                that._postMessageToIframe('ping', {
+                    templateImageBase64: base64
+                }).then(function () {
+                    if (!popupFail) {
+                        that._openPopUp();
+                    } else {
+                        self.location.href = that.iframe.src + '?' + that._encodeParams(params);
+                    }
+                }, function (e) {
+                    console.error(e);
+                });
+            }, function (e) {
+                console.error(e);
+            });
+        } else {
+            if (!popupFail) {
+                that._openPopUp();
+            } else {
+                self.location.href = that.iframe.src + '?' + that._encodeParams(params);
+            }
+        }
+    };
 
     Lib.prototype._setup = function (action) {
         var that = this,
             platform = this.support._getPlatform(),
-            popupFail = false,
-            imageUrl,
-            template;
+            popupFail = false;
 
         return new Promise(function (resolve, reject) {
             if (platform === 'CHROME' || platform === 'FIREFOX') {
 
                 if (action === 'initSubscribe') {
-
                     if (!that.params._get('hwid') || !that.params._get('regid')) {
                         if (that.params._get('setupEndPoint') && !that.params._get('templateEndPoint')) {
                             if (!that._openPopUp()) {
@@ -791,93 +851,46 @@
                     }).then(function (data) {
 
                         switch (data.status) {
-                        case 'ready':
-                            that.control.hasSetup = true;
-                            resolve(data);
-                            break;
-                        case 'pong':
-                            resolve(data);
-                            break;
-
-                        case 'setup-ssl-error':
-                            //console.error('DOMException: Only secure origins are allowed (see: https://goo.gl/Y0ZkNV).');
-                        case 'setup-error':
-                            if (!that.params._get('setupEndPoint')) {
-                                reject(data);
+                            case 'ready':
+                                that.control.hasSetup = true;
+                                resolve(data);
                                 break;
-                            }
-                        case 'registered-redirect':
+                            case 'pong':
+                                resolve(data);
+                                break;
 
-                            that.checkStatus().then(function (status) {
-                                if (status === 'denied') {
-                                    console.warn('The user has denied the permission to receive notifications for this domain, until the permission are manually changed we cannot send data.');
-                                    // todo: give the user better message, and understangind
+                            case 'setup-ssl-error':
+                            //console.error('DOMException: Only secure origins are allowed (see: https://goo.gl/Y0ZkNV).');
+                            case 'setup-error':
+                                if (!that.params._get('setupEndPoint')) {
+                                    reject(data);
+                                    break;
+                                }
+                            case 'setup-reload':
+                                if (self.location.href.indexOf('https') !== -1) {
+                                    console.warn('You are using a secure connection. HTTPS');
                                     return;
                                 }
-                                if (status === 'default') {
-                                    var params = { callback: self.location.href };
+                            case 'registered-redirect':
+                                that.control.hasSetup = true;
+                                that.checkStatus().then(function (status) {
                                     if (that.params._get('templateEndPoint')) {
-                                        self.fetch(that.params._get('templateEndPoint')).then(function (response) {
-                                            response.text().then(function (html) {
-                                                template = new Template(that.params._get('templateEndPoint'));
-                                                template._cleanAndPrepareHtml(html).then(function (newHtml) {
-                                                    if (newHtml.length > 5232400) {
-                                                        console.error('Your template is too big!');
-                                                    } else {
-                                                        that._postMessageToIframe('ping', {
-                                                            template: newHtml
-                                                        }).then(function () {
-                                                            params.subscribe = true;
-                                                            self.location.href = that.iframe.src + '?' + that._encodeParams(params);
-                                                        }, function () {
-                                                            console.error('postMessage timeout!');
-                                                        });
-                                                    }
-                                                }, function (e) {
-                                                    console.error(e);
-                                                });
-                                            });
-                                        }, function (e) {
-                                            console.error('Template target error!', e);
-                                        });
-                                    } else {
-                                        imageUrl = that.params._get('templateImageUrl');
-                                        if (imageUrl && imageUrl.indexOf('https') === -1) {
-                                            template = new Template();
-                                            template._loadImageBase64FromUrl(imageUrl).then(function (base64) {
-                                                that._postMessageToIframe('ping', {
-                                                    templateImageBase64: base64
-                                                }).then(function () {
-                                                    if (!popupFail) {
-                                                        that._openPopUp();
-                                                    } else {
-                                                        self.location.href = that.iframe.src + '?' + that._encodeParams(params);
-                                                    }
-                                                }, function (e) {
-                                                    console.error(e);
-                                                });
-                                            }, function (e) {
-                                                console.error(e);
-                                            });
-                                        } else {
-                                            if (!popupFail) {
-                                                // if (!that.params._get('hwid') || !that.params._get('regid')) {
-                                                //  ???
-                                                // }
-                                                that._openPopUp();
-                                            } else {
-                                                self.location.href = that.iframe.src + '?' + that._encodeParams(params);
-                                            }
+                                        if (status === 'denied') {
+                                            resolve(data);
+                                            return;
                                         }
+                                        that._setupUserTemplate();
+                                    } else {
+                                        that._setupDefaultTemplate(popupFail);
                                     }
-                                }
-                            }, function (e) {
-                                console.error(e);
-                            });
-                            break;
+
+                                }, function (e) {
+                                    console.error(e);
+                                });
+                                break;
                         }
-                    }, function () {
-                        console.error('postMessage timeout!');
+                    }, function (e) {
+                        console.error('postMessage timeout!', e);
                         reject();
                     });
                 });
@@ -971,37 +984,49 @@
         return new Promise(function (resolve, reject) {
             that._setup('initSubscribe').then(function () {
                 if (platform === 'CHROME' || platform === 'FIREFOX') {
-                    if (that.params._get('hwid') && that.params._get('regid')) {
-                        resolve(that);
-                        return;
-                    }
-                    if (that.params._get('setupEndPoint') && !that.params._get('templateEndPoint')) {
-                        if (that._openPopUp()) {
+
+                    that.checkStatus().then(function (status) {
+
+                        if (status == 'denied') {
+                            reject('denied');
                             return;
                         }
-                    }
-                    that._postMessageToIframe('doSubscribe').then(function (data) {
 
-                        switch (data.status) {
-                            case 'subscribed':
-                                resolve(that);
-                                break;
-                            case 'subscribed-error':
-                                reject('error');
-                                break;
-                            case 'subscribed-default':
-                                reject('default');
-                                break;
-                            case 'subscribed-denied':
-                                reject('denied');
-                                break;
-                            default:
-                                console.error('No "data.status" match');
-                                reject('error');
+                        if (that.params._get('hwid') && that.params._get('regid')) {
+                            resolve(that);
+                            return;
                         }
+                        if (that.params._get('setupEndPoint') && !that.params._get('templateEndPoint')) {
+                            if (that._openPopUp()) {
+                                return;
+                            }
+                        }
+
+                        that._postMessageToIframe('doSubscribe').then(function (data) {
+
+                            switch (data.status) {
+                                case 'subscribed':
+                                    resolve(that);
+                                    break;
+                                case 'subscribed-error':
+                                    reject('error');
+                                    break;
+                                case 'default':
+                                    reject('default');
+                                    break;
+                                case 'denied':
+                                    reject('denied');
+                                    break;
+                                default:
+                                    console.error('No "data.status" match', data.status);
+                                    reject('error');
+                            }
+                        }, function (e) {
+                            console.error(e);
+                            reject('error');
+                        });
                     }, function (e) {
                         console.error(e);
-                        reject('error');
                     });
 
                 } else if (platform === 'SAFARI') {
