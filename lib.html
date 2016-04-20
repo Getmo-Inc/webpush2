@@ -544,15 +544,21 @@
                     if (!control.image) {
                         var templateImageUrl = getParam('templateImageUrl');
                         if (templateImageUrl) {
-                            var templateImageBase64 = getParam('templateImageBase64');
-                            if (templateImageBase64) {
-                                var image = new window.Image();
-                                image.width = 80;
-                                image.height = 80;
-                                image.src = templateImageBase64;
+                            var image = new window.Image();
+                            image.width = 80;
+                            image.height = 80;
+
+                            if (templateImageUrl.indexOf('https') === -1) {
+                                var templateImageBase64 = getParam('templateImageBase64');
+                                if (templateImageBase64) {
+                                    image.src = templateImageBase64;
+                                    imageContainer.innerHTML = image.outerHTML;
+                                }
+                            } else {
+                                image.src = templateImageUrl;
                                 imageContainer.innerHTML = image.outerHTML;
-                                control.image = true;
                             }
+                            control.image = true;
                         } else if (templateImageUrl === false) {
                             control.image = true;
                         }
