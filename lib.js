@@ -639,6 +639,7 @@
     Lib.prototype._processMessageFromIframe = function (e) {
         if (!e.data.eventId && e.data.status === 'subscribed' && typeof e.data.params === 'object') {
             this.params._set(e.data.params);
+            this.events.once('subscribed');
         } else if (e.data.eventId) {
             this.events.once(e.data.eventId, e.data);
         }
@@ -671,9 +672,11 @@
                 resolve(e.detail);
             });
 
-            timeout = setTimeout(function () {
-                reject('postMessage event timeout: ' + data.eventId);
-            }, 5000);
+            if (action !== 'doSubscribe') {
+                timeout = setTimeout(function () {
+                    reject('postMessage event timeout: ' + data.eventId);
+                }, 5000);
+            }
 
             that.iframe.contentWindow.postMessage(data, '*');
         });
@@ -991,13 +994,15 @@
                             reject('denied');
                             return;
                         }
-
                         if (that.params._get('hwid') && that.params._get('regid')) {
                             resolve(that);
                             return;
                         }
                         if (that.params._get('setupEndPoint') && !that.params._get('templateEndPoint')) {
                             if (that._openPopUp()) {
+                                that.events.one('subscribed', function() {
+                                    resolve(that);
+                                });
                                 return;
                             }
                         }
@@ -1119,6 +1124,9 @@
                                 regid: null,
                                 alias: null
                             });
+                            if (that.params._get('templateEndPoint')) {
+                                that.control.hasSetup = false;
+                            }
                             resolve();
                         }, function (e) {
                             console.error('Cannot un-register this user on DB. It will be removed in next dry-run!', e);

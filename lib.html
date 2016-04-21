@@ -585,15 +585,12 @@
 
                     if (counter > 150) {
                         clearInterval(interval);
-
                         if (!control.siteName) {
                             titleElem.innerHTML = match[0];
                         }
-
                         loadingElem.className = '';
                     }
                     counter = counter + 1;
-
                 }, 50);
             }
         }
@@ -622,16 +619,12 @@
     .denied .bt.config { display: inline-block; }
     .setting-url { display: none; }
     .denied .setting-url { display: block; }
-    #loading-container {
-        display: flex; justify-content: center; align-items: center;
-        position: fixed; width: 100%; height: 100%; top: -100%; left: 0; background-color: #FFF;
-        -webkit-transition: top 1s; -moz-transition: top 1s; transition: top 1s;
-    }
+    #loading-container { display: flex; justify-content: center; align-items: center; position: fixed; width: 100%; height: 100%; top: -100%; left: 0; background-color: #FFF; -webkit-transition: top 1s; -moz-transition: top 1s; transition: top 1s;}
     #loading-container.loading { top: 0; }
 </style>
 <div id="content" class="normal">
     <div style="color: rgba(0,0,0,.7)">
-        <h1 id="content-title" style="font-size: 20px; margin-bottom: 5px;">{{ siteName }}</h1>
+        <h1 id="content-title" style="font-size: 20px; margin-bottom: 5px;"></h1>
         <h2 style="font-size: 18px; margin-top: 5px; margin-bottom: 20px;">deseja enviar notificações para você!</h2>
     </div>
     <div style="width: 360px; height: 80px; margin: 0 auto; overflow: hidden; background: url(https://cdn.getmo.com.br/images/notification-mockup.jpg); box-shadow: 0px 0px 4px #666;">
