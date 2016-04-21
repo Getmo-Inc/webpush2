@@ -440,6 +440,10 @@
                     }
 
                     subscription.unsubscribe().then(function() {
+                        setParams({
+                            regid: null,
+                            alias: null
+                        });
                         sendMessageToParent({
                             eventId: eventId,
                             status: 'unsubscribed'

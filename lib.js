@@ -615,7 +615,7 @@
             if (!method) {
                 method = 'POST';
             } else {
-                data['_method'] = method;
+                params += '&_method=' + method;
                 method = 'POST';
             }
             self.fetch(url, {
@@ -1109,24 +1109,27 @@
         return new Promise(function (resolve, reject) {
             that._postMessageToIframe('unsubscribe').then(function (data) {
                 switch (data.status) {
-                case 'unsubscribed':
-                    that._request(that.registerEndPoint, {
-                        devid: that.params._get('devid'),
-                        appid: that.params._get('appid'),
-                        uuid: that.params._get('hwid')
-                    }, 'DELETE').then(function () {
-                        resolve();
-                    }, function (e) {
-                        console.error('Cannot un-register this user on DB. It will be removed in next dry-run!', e);
+                    case 'unsubscribed':
+                        that._request(that.registerEndPoint, {
+                            devid: that.params._get('devid'),
+                            appid: that.params._get('appid'),
+                            uuid: that.params._get('hwid')
+                        }, 'DELETE').then(function () {
+                            that.params._set({
+                                regid: null,
+                                alias: null
+                            });
+                            resolve();
+                        }, function (e) {
+                            console.error('Cannot un-register this user on DB. It will be removed in next dry-run!', e);
+                            reject();
+                        });
+                        break;
+                    case 'unsubscribed-error':
                         reject();
-                    });
-                    break;
-                case 'unsubscribed-error':
-                    reject();
-                    break;
+                        break;
                 }
             }, function () {
-                console.error('postMessage timeout!');
                 reject();
             });
         });
