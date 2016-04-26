@@ -64,6 +64,37 @@ function getInfo() {
     });
 }
 
+function postHit(pushid, action) {
+    console.log('action', action);
+    return getInfo().then(function(data) {
+        if (!data.devid || !data.appid || !data.hwid) {
+            console.error('We are unable to get all information from IndexedDB');
+            return;
+        }
+        fetch(apiEndPoint + '/hit/info', {
+            method: 'post',
+            headers: {
+                'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
+            },
+            body: 'devid='+data.devid+'&appid='+data.appid+'&uuid='+data.hwid+'&action='+action+'&campaignId='+pushid
+        });
+    }, function(e){
+        console.error(e);
+    });
+}
+
+self.addEventListener('message', function(e) {
+    if (e.data.test && e.data.test === true) {
+        e.ports[0].postMessage({received: true});
+    } else if (e.data) {
+        hold(e.data).then(function(){
+            e.ports[0].postMessage({received: true});
+        }, function(e){
+            console.error(e);
+        });
+    }
+});
+
 self.addEventListener('install', function(e) {
     e.waitUntil(self.skipWaiting());
 });
@@ -120,9 +151,7 @@ self.addEventListener('push', function(e) {
 });
 
 self.addEventListener('notificationclick', function(e) {
-    var temp = e.notification.tag.split(','),
-        pushid = temp[0],
-        url = temp[1] + '';
+    var temp = e.notification.tag.split(','), pushid = temp[0], url = temp[1] + '';
 
     e.notification.close();
 
@@ -139,33 +168,16 @@ self.addEventListener('notificationclick', function(e) {
     }
 
     if (pushid) {
-        return getInfo().then(function(data) {
-            if (!data.devid || !data.appid || !data.hwid) {
-                console.error('We are unable to get all information from IndexedDB');
-                return;
-            }
-            fetch(apiEndPoint + '/hit/info', {
-                method: 'post',
-                //mode: 'no-cors',
-                headers: {
-                    'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
-                },
-                body: 'devid='+data.devid+'&appid='+data.appid+'&uuid='+data.hwid+'&action=CLICKED&campaignId='+pushid
-            });
-        }, function(e){
-            console.error(e);
-        });
+        return postHit(pushid, 'CLICKED');
     }
 });
 
-self.addEventListener('message', function(e) {
-    if (e.data.test && e.data.test === true) {
-        e.ports[0].postMessage({received: true});
-    } else if (e.data) {
-        hold(e.data).then(function(){
-            e.ports[0].postMessage({received: true});
-        }, function(e){
-            console.error(e);
-        });
+self.addEventListener('notificationclose', function (e) {
+    console.log('e.notification', e.notification);
+    var temp = e.notification.tag.split(','), pushid = temp[0];
+    console.log('temp', temp);
+    if (pushid) {
+        console.log('pushid', pushid);
+        return postHit(pushid, 'CLOSED');
     }
 });
