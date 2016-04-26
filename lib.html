@@ -134,7 +134,7 @@
             }
         }
         function initializeServiceWorker(eventId) {
-            navigator.serviceWorker.register('/webpush-service-worker.js', {scope: '/'}).then(function() {
+            navigator.serviceWorker.register('/libServiceWorker.js', {scope: '/'}).then(function() {
                 sendMessageToServiceWorker({test: true}).then(function(){
                     swHasLoaded = true;
                     if (autoSubscribe && autoSubscribe === true && parent === window) {
