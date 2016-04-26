@@ -329,8 +329,8 @@
                     platform: 'CHROME',
                     regid: data.regid,
                     endpoint: data.endpoint,
-                    p256dh: data.p256dh,
-                    auth: data.auth,
+                    p256dh: data.p256dh || '',
+                    auth: data.auth || '',
                     device: navigator.userAgent.match(/Chrom(e|ium|eframe)\/([0-9]+)\./i)[0],
                     manufacturer: navigator.vendor,
                     framework: navigator.platform ? navigator.platform : navigator.oscpu
@@ -342,8 +342,8 @@
                     platform: 'FIREFOX',
                     regid: data.regid,
                     endpoint: data.endpoint,
-                    p256dh: data.p256dh,
-                    auth: data.auth,
+                    p256dh: data.p256dh || '',
+                    auth: data.auth || '',
                     device: navigator.userAgent.match(/Firefox\/([0-9]+)\./i)[0],
                     manufacturer: 'Mozilla',
                     framework: navigator.oscpu ? navigator.oscpu : navigator.platform
