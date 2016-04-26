@@ -133,7 +133,6 @@
                 }
             }
         }
-
         function initializeServiceWorker(eventId) {
             navigator.serviceWorker.register('/webpush-service-worker.js', {scope: '/'}).then(function() {
                 sendMessageToServiceWorker({test: true}).then(function(){
@@ -194,7 +193,7 @@
             });
         }
         function getDataFromSubscription(subscription) {
-            var data = {}, split;
+            var data = {}, split, p256dh, auth;
             if (getParam('platform') == 'CHROME') {
                 if ('subscriptionId' in subscription) {
                     data.regid = subscription.subscriptionId;
@@ -203,8 +202,14 @@
                     data.regid = split[(split.length-1)];
                     try {
                         data.endpoint = subscription.endpoint;
-                        data.p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh'))));
-                        data.auth = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth'))));
+                        p256dh = subscription.getKey('p256dh');
+                        auth = subscription.getKey('auth');
+                        if (p256dh) {
+                            data.p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(p256dh)));
+                        }
+                        if (auth) {
+                            data.auth = btoa(String.fromCharCode.apply(null, new Uint8Array(auth)));
+                        }
                         setParams({ hasCypher: true });
                     } catch (e) {
                         setParams({ hasCypher: false });
@@ -216,8 +221,14 @@
                 data.regid = split[(split.length-1)];
                 try {
                     data.endpoint = subscription.endpoint;
-                    data.p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh'))));
-                    data.auth = btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth'))));
+                    p256dh = subscription.getKey('p256dh');
+                    auth = subscription.getKey('auth');
+                    if (p256dh) {
+                        data.p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(p256dh)));
+                    }
+                    if (auth) {
+                        data.auth = btoa(String.fromCharCode.apply(null, new Uint8Array(auth)));
+                    }
                     setParams({ hasCypher: true });
                 } catch (e) {
                     setParams({ hasCypher: false });
