@@ -10,7 +10,7 @@
     'use strict';
 
     var Events, Support, Template, Params, Lib,
-        API_VERSION = '',
+        API_VERSION = '2.0.0',
         API_END_POINT = ((self.location.href + '').indexOf('local.getmo.') === -1) ? 'https://api.getmo.com.br' : 'https://local.getmo.api';
 
     /*
@@ -1032,6 +1032,7 @@
                         });
                     }, function (e) {
                         console.error(e);
+                        reject('error');
                     });
 
                 } else if (platform === 'SAFARI') {

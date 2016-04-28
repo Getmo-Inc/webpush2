@@ -4,8 +4,8 @@ var jsLint = require('gulp-jslint');
 
 gulp.task('webpush', function() {
     return gulp
-        .src(['./webpush.js'])
-        .pipe($.concat('webpush.min.js', {newLine: ';'}))
+        .src(['./lib.js'])
+        .pipe($.concat('lib.min.js', {newLine: ';'}))
         .pipe($.uglify())
         .pipe(gulp.dest('./dest/'));
 });

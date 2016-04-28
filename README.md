@@ -1,12 +1,12 @@
 # Smartpush
 ---
-## Web Push SDK Documentation 1.2.10
+## Web Push SDK Documentation 2.0.0
 This lib activates the off-site web push service on your Web Browser. Remember that you must have a secure environment to use web push notifications. The SDK only works on ``https://`` connections.
 
 ##### I dont have a ssl certificate!
 \- No problem! You can request us to deploy a custom CDN with a SSL certificate. After everything is set up, you will receive a URL target that can be use to create a CNAME record on your DNS. Example: ``` webpush.yourdomain.com => xxxxxxx.cloudfront.net ```.
 
-In this case, the use of `sslUrl` on the SDK **create** method is required for webpush work well. See more information about using a centralized subdomains bellow.
+In this case, the use of a `ssl` object on the SDK **create** method is required for webpush work correctly. See more information about using a centralized subdomains bellow.
 
 ### What does the project do?
 This project integrates off-site webpush notification system with **Smartpush API**, for browsers that supports this feature.
@@ -15,19 +15,19 @@ This project integrates off-site webpush notification system with **Smartpush AP
 
 **Important:** if you dont have a https connection and you choose to use owr infra-structure, you can skip the Download and Installation process descripted bellow, because the following 4 files are already present on owr CDN.
 
-Download "Webpush Installation Files" (*.zip) from [https://cdn.getmo.com.br/webpush-pack-1.2.10.zip](https://cdn.getmo.com.br/webpush-pack-1.2.10.zip) and install the following files in the root of your website:
-- webpush-1.2.10.html
+Download "Webpush Installation Files" (*.zip) from [https://cdn.getmo.com.br/webpush-pack-2.0.0.zip](https://cdn.getmo.com.br/webpush-pack-2.0.0.zip) and install the following files in the root of your website:
+- webpush-2.0.0.html
 - webpush-chrome-manifest.json
 - webpush-service-worker.js
 - webpush-image.png (customize the image before installation)
 
 After that, you load the SDK's current version in your html page from one of this two sources: 
-- ``http://cdn.getmo.com.br/webpush-1.2.10.min.js``
-- ``https://cdn.getmo.com.br/webpush-1.2.10.min.js``
+- ``http://cdn.getmo.com.br/webpush-2.0.0.min.js``
+- ``https://cdn.getmo.com.br/webpush-2.0.0.min.js``
 
 and you are ready to go!
 ```html
-<script src="//cdn.getmo.com.br/webpush-1.2.10.min.js"></script>
+<script src="//cdn.getmo.com.br/webpush-2.0.0.min.js"></script>
 ```
  
 
@@ -65,9 +65,10 @@ if (!webpush) {
 }
 ```
 
-When you need to centralize subdomains, or when you dont have a secure connection, you can pass a string with a absolute https URL, named `sslUrl`.
-> It is recommended to use the `templateUrl` property with `sslUrl`, to customize and prevent the white page when the browser *Ask* to send Web Notification.
- 
+\- But, ah... I don't have https on my website! - No problem!
+
+When you don't have a secure connection, or when you need to centralize subdomains, you can pass an object named `ssl` with a property named `url`. The `url` property must be an absolute https URL string. 
+This configuration open a popup with a default template.
 Example:
 ```javascript
 var webpush = window.Smartpush.create({
@@ -77,13 +78,53 @@ var webpush = window.Smartpush.create({
         safari: 'APPID',
         firefox: 'APPID'
     },
-    sslUrl: 'https://...', // optional
-    templateUrl: '(http|https)://...', // optional
+    ssl: {
+        url: 'https://...' 
+    }
 });
 ```
-> **Attention!** If you use ``templateUrl`` property, pay attention in the following topics:
+On default template, you can customize the site name and the icon image (80x80). For that, you must pass an object named `template`, inside the `ssl` object, with two optional properties, `siteName` and `imageUrl`.
+The `imageUrl` don't need to be on a https connection, but it must be on the same origin. 
 
-- ``templateUrl`` must be the same origin of the website, otherwise the browser will throw a **'Access-Control-Allow-Origin'** error.
+Example:
+```javascript
+var webpush = window.Smartpush.create({
+    devid: 'DEVID',
+    appid: {
+        chrome: 'APPID',
+        safari: 'APPID',
+        firefox: 'APPID'
+    },
+    ssl: {
+        url: 'https://...',
+        template: {
+            siteName: 'Smartpush', // optional
+            imageUrl: 'https://...|http://...', // optional
+        }
+    }
+});
+```
+If you want to use your custom template, instead of an object, the `template` property must be an absolute URL string.
+
+Example:
+```javascript
+var webpush = window.Smartpush.create({
+    devid: 'DEVID',
+    appid: {
+        chrome: 'APPID',
+        safari: 'APPID',
+        firefox: 'APPID'
+    },
+    ssl: {
+        url: 'https://...',
+        template: 'https://...', // optional
+    }
+});
+```
+> **Attention!** If you setup using your custom template, like the example bellow, pay attention in the following topics:
+
+- ``template`` don't need to be on a https connection.
+- ``template`` must be the same origin of the website, otherwise the browser will throw a **'Access-Control-Allow-Origin'** error.
 - ``<script>`` tags inside the template will be removed/ignored.
 - ``<link rel="stylesheet">`` tags will be removed hand his content will be loaded inside a ``<style>`` tag.
 - Don't use CSS styles with **import()** method, these styles won't be loaded/parsed.
@@ -100,20 +141,14 @@ var webpush = window.Smartpush.create({
 
 > The **chechStatus()** method check the current user registration status.
 
-- The **sucess** callback returns an object called ``"user"``. The ***"user"*** object is where you interact the most. We talk more about all the methods of the ***"user"*** object below.
-- The **error** callback returns a string called ``"status"``. You can verify the **"status"** for the following values: ``"default"``, ``"denied"``, ``"error"``.
+- The **sucess** callback returns a string called ``"status"``. You can verify the **"status"** for the following values: ``"granted"``, ``"default"``, ``"denied"``
+- The **error** callback returns an error string explaining what went wrong.
 ```javascript
-webpush.checkStatus().then(function(user) {
-    // the current user is registered
-    // user.getTag()
-    // user.addTag()
-    // user.removeTag()
-    // user.getUnreadNotifications()
-    // user.getLastNotifications()
-    // user.removeUnreadNotification()
-    // user.removeAllUnreadNotifications()
-    // see complete documentation...
-}, function(status) {
+webpush.checkStatus().then(function(status) {
+    if (status == 'granted') {
+        console.warn('The user has not accept the notification permission yet. Here is a good place to trigger the subscribe() method if you will ask the user permission to receive web push notifications.');
+        return;
+    }
     if (status == 'default') {
         console.warn('The user has not accept the notification permission yet. Here is a good place to trigger the subscribe() method if you will ask the user permission to receive web push notifications.');
         return;
@@ -122,9 +157,9 @@ webpush.checkStatus().then(function(user) {
         console.warn('The user has denied the permission to receive notifications for this domain, until the permission are manually changed we cannot send data.');
         return;
     }
-    if (status == 'error') {
-        console.log('Try again later, the GCM or APNS are unreachable at the moment');
-    }
+}, function(e) {
+    console.error(e);
+    console.log('Something went wrong. Try again later, the GCM or APNS are unreachable at the moment');
 });
 ```
 
@@ -132,8 +167,8 @@ webpush.checkStatus().then(function(user) {
 
 > The **subscribe()** method triggers the "Notification Permission Ask" if the user doesn't have answered it yet.
 
-- The **sucess** callback returns an object called ``"user"`` too. We talk more about all the interaction with the **"user"** object below. Keep going...
-- The **error** callback returns nothing. But you can inspect your console for extra errors, generated to help you understand what happened.
+- The **sucess** callback returns an object called ``"user"``. We talk more about all the interaction with the **"user"** object below. Keep going...
+- The **error** callback returns a string called ``"status"``. You can verify the **"status"** for the following values: ``"default"``, ``"denied"``, ``"error"``. In case of error you can inspect your console for extra explanations.
 ```javascript
 webpush.subscribe().then(function(user) {
     // the current user was successfully registered
@@ -160,6 +195,8 @@ webpush.subscribe().then(function(user) {
     }
 });
 ```
+> **Attention!** The subscribe behavior can change according to your setup. If you have a https connection it will trigger the browser prompt notification, otherwise it can open a popup or redirect to your custom template.
+
 
 ##### The "user" object
 ---
@@ -319,7 +356,7 @@ window.addEventListener('load', function() {
 
     button.on('click', function(){ // note: "button" here represents a clickable element
 
-        webpush.checkStatus().then(function(user){
+        webpush.subscribe().then(function(user){
 
             // make what you need with the user object, example:
             user.addTag('TAG_NAME', 'TAG_VALUE', 'STRING');
@@ -366,20 +403,19 @@ window.addEventListener('load', function() {
                 console.error(e)
                 // Do something when catch a error!
             });
+
         }, function(status) {
             if (status == 'denied') {
                 console.warn('The user has denied the permission to receive notifications for this domain, until the permission are manually changed we cannot send data.');
                 return;
             }
             if (status == 'default') {
-                webpush.subscribe().then(function(user){
-                    // again, make what you need with the user object, example:
-                    user.addTag('TAG_NAME', 'TAG_VALUE', 'STRING');
-                    user.removeTag('TAG_NAME', 'TAG_VALUE', 'STRING');
-                    // ...
-                }, function() {
-                    console.warn('Subscribe catch. Probably the user does not answer the notification request yet.');
-                });
+                console.log('The user dismiss the permission to receive notifications for this domain, ask later again!');
+                return;
+            }
+            if (status == 'error') {
+                console.error('An error occoured trying to subscribe.');
+                return;
             }
         });
     });
