@@ -852,8 +852,6 @@
                         templateImageUrl: that.params._get('templateImageUrl'),
                         templateSiteName: that.params._get('templateSiteName')
                     }).then(function (data) {
-                        console.log('that.control.hasSetup', that.control.hasSetup);
-                        console.log('data', data);
                         switch (data.status) {
                             case 'ready':
                                 that.control.hasSetup = true;
