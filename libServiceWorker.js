@@ -65,7 +65,6 @@ function getInfo() {
 }
 
 function postHit(pushid, action) {
-    console.log('action', action);
     return getInfo().then(function(data) {
         if (!data.devid || !data.appid || !data.hwid) {
             console.error('We are unable to get all information from IndexedDB');
@@ -173,11 +172,8 @@ self.addEventListener('notificationclick', function(e) {
 });
 
 self.addEventListener('notificationclose', function (e) {
-    console.log('e.notification', e.notification);
     var temp = e.notification.tag.split(','), pushid = temp[0];
-    console.log('temp', temp);
     if (pushid) {
-        console.log('pushid', pushid);
         return postHit(pushid, 'CLOSED');
     }
 });
