@@ -80,7 +80,7 @@
                         if (getParam('platform') == 'CHROME' || getParam('platform') == 'FIREFOX') {
                             if (!getParam('setupEndPoint')) {
                                 sendMessageToServiceWorker({test: true}).then(function(){
-                                    if (getParam('hwid') && getParam('regid')) {
+                                    if (getParam('hwid') && getParam('regid') && Notification.permission == 'granted') {
                                         sendMessageToParent({
                                             eventId: eventId,
                                             status: 'ready',
@@ -93,7 +93,7 @@
                                     initializeServiceWorker(eventId);
                                 });
                             } else {
-                                if (getParam('hwid') && getParam('regid')) {
+                                if (getParam('hwid') && getParam('regid') && Notification.permission == 'granted') {
                                     sendMessageToParent({
                                         eventId: eventId,
                                         status: 'ready',

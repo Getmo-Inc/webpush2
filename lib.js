@@ -10,7 +10,7 @@
     'use strict';
 
     var Events, Support, Template, Params, Lib,
-        API_VERSION = '2.0.0',
+        API_VERSION = '2.0.1',
         API_END_POINT = ((self.location.href + '').indexOf('local.getmo.') === -1) ? 'https://api.getmo.com.br' : 'https://local.getmo.api';
 
     /*
@@ -852,7 +852,8 @@
                         templateImageUrl: that.params._get('templateImageUrl'),
                         templateSiteName: that.params._get('templateSiteName')
                     }).then(function (data) {
-
+                        console.log('that.control.hasSetup', that.control.hasSetup);
+                        console.log('data', data);
                         switch (data.status) {
                             case 'ready':
                                 that.control.hasSetup = true;
@@ -994,7 +995,7 @@
                             reject('denied');
                             return;
                         }
-                        if (that.params._get('hwid') && that.params._get('regid')) {
+                        if (that.params._get('hwid') && that.params._get('regid') && status == 'granted') {
                             resolve(that);
                             return;
                         }
