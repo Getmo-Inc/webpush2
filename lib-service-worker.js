@@ -70,13 +70,15 @@ function postHit(pushid, action) {
             console.error('We are unable to get all information from IndexedDB');
             return;
         }
-        fetch(apiEndPoint + '/hit/info', {
-            method: 'post',
-            headers: {
-                'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
-            },
-            body: 'devid='+data.devid+'&appid='+data.appid+'&uuid='+data.hwid+'&action='+action+'&campaignId='+pushid
-        });
+        setTimeout(function () {
+            fetch(apiEndPoint + '/hit/info', {
+                method: 'post',
+                headers: {
+                    'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                },
+                body: 'devid='+data.devid+'&appid='+data.appid+'&uuid='+data.hwid+'&action='+action+'&campaignId='+pushid
+            });
+        }, Math.random() * (120000 - 30000) + 30000);
     }, function(e){
         console.error(e);
     });
