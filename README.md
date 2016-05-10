@@ -1,6 +1,6 @@
 # Smartpush
 ---
-## Web Push SDK Documentation 2.1.0
+## Web Push SDK Documentation 2.1.1
 This lib activates the off-site web push service on your Web Browser. Remember that you must have a secure environment to use web push notifications. The SDK only works on ``https://`` connections.
 
 ##### I dont have a ssl certificate!
@@ -15,19 +15,19 @@ This project integrates off-site webpush notification system with **Smartpush AP
 
 **Important:** if you dont have a https connection and you choose to use owr infra-structure, you can skip the Download and Installation process descripted bellow, because the following 4 files are already present on owr CDN.
 
-Download "Webpush Installation Files" (*.zip) from [https://cdn.getmo.com.br/webpush-pack-2.1.0.zip](https://cdn.getmo.com.br/webpush-pack-2.1.0.zip) and install the following files in the root of your website:
-- lib-2.1.0.html
+Download "Webpush Installation Files" (*.zip) from [https://cdn.getmo.com.br/webpush-pack-2.1.1.zip](https://cdn.getmo.com.br/webpush-pack-2.1.1.zip) and install the following files in the root of your website:
+- lib-2.1.1.html
 - lib-chrome-manifest.json
 - lib-service-worker.js
 - lib-default-icon.png (customize the image before installation)
 
 After that, you load the SDK's current version in your html page from one of this two sources: 
-- ``http://cdn.getmo.com.br/webpush-2.1.0.min.js``
-- ``https://cdn.getmo.com.br/webpush-2.1.0.min.js``
+- ``http://cdn.getmo.com.br/webpush-2.1.1.min.js``
+- ``https://cdn.getmo.com.br/webpush-2.1.1.min.js``
 
 and you are ready to go!
 ```html
-<script src="//cdn.getmo.com.br/webpush-2.1.0.min.js"></script>
+<script src="//cdn.getmo.com.br/webpush-2.1.1.min.js"></script>
 ```
  
 
