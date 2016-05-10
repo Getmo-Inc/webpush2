@@ -245,7 +245,7 @@
                     reject('_loadImageBase64FromUrl() Timeout!');
                 }
                 counter = counter + 1;
-            }, 50);
+            }, 100);
         });
     };
     Template.prototype._loadStylesForTemplate = function (tempDocument) {
@@ -315,7 +315,7 @@
                     }
                     counter = counter + 1;
                 }
-            }, 50);
+            }, 100);
         });
     };
     Template.prototype._loadImagesForTemplate = function (tempDocument) {
@@ -372,7 +372,7 @@
                     }
                     counter = counter + 1;
                 }
-            }, 50);
+            }, 100);
         });
     };
     Template.prototype._loadImagesFromStylesForTemplate = function (tempDocument) {
@@ -454,7 +454,7 @@
                         }
                         counter = counter + 1;
                     }
-                }, 50);
+                }, 100);
             } else {
                 resolve(tempDocument);
             }
