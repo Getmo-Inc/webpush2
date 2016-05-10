@@ -1,17 +1,11 @@
-// polyfill for safari will be loaded only if the browser is SAFARI.
-// todo: create a .ready() promise to signal the user that everything is ready to go
-// in SAFARI, or browser that dont have native fetch implemented:
-// make a async call to load the polyfill before the lib
-!function(){"use strict";function t(t){if("string"!=typeof t&&(t=String(t)),/[^a-z0-9\-#$%&'*+.\^_`|~]/i.test(t))throw new TypeError("Invalid character in header field name");return t.toLowerCase()}function e(t){return"string"!=typeof t&&(t=String(t)),t}function r(t){this.map={},t instanceof r?t.forEach(function(t,e){this.append(e,t)},this):t&&Object.getOwnPropertyNames(t).forEach(function(e){this.append(e,t[e])},this)}function o(t){return t.bodyUsed?Promise.reject(new TypeError("Already read")):void(t.bodyUsed=!0)}function n(t){return new Promise(function(e,r){t.onload=function(){e(t.result)},t.onerror=function(){r(t.error)}})}function s(t){var e=new FileReader;return e.readAsArrayBuffer(t),n(e)}function i(t){var e=new FileReader;return e.readAsText(t),n(e)}function a(){return this.bodyUsed=!1,this._initBody=function(t){if(this._bodyInit=t,"string"==typeof t)this._bodyText=t;else if(p.blob&&Blob.prototype.isPrototypeOf(t))this._bodyBlob=t;else if(p.formData&&FormData.prototype.isPrototypeOf(t))this._bodyFormData=t;else if(t){if(!p.arrayBuffer||!ArrayBuffer.prototype.isPrototypeOf(t))throw new Error("unsupported BodyInit type")}else this._bodyText=""},p.blob?(this.blob=function(){var t=o(this);if(t)return t;if(this._bodyBlob)return Promise.resolve(this._bodyBlob);if(this._bodyFormData)throw new Error("could not read FormData body as blob");return Promise.resolve(new Blob([this._bodyText]))},this.arrayBuffer=function(){return this.blob().then(s)},this.text=function(){var t=o(this);if(t)return t;if(this._bodyBlob)return i(this._bodyBlob);if(this._bodyFormData)throw new Error("could not read FormData body as text");return Promise.resolve(this._bodyText)}):this.text=function(){var t=o(this);return t?t:Promise.resolve(this._bodyText)},p.formData&&(this.formData=function(){return this.text().then(f)}),this.json=function(){return this.text().then(JSON.parse)},this}function u(t){var e=t.toUpperCase();return c.indexOf(e)>-1?e:t}function h(t,e){e=e||{};var o=e.body;if(h.prototype.isPrototypeOf(t)){if(t.bodyUsed)throw new TypeError("Already read");this.url=t.url,this.credentials=t.credentials,e.headers||(this.headers=new r(t.headers)),this.method=t.method,this.mode=t.mode,o||(o=t._bodyInit,t.bodyUsed=!0)}else this.url=t;if(this.credentials=e.credentials||this.credentials||"omit",(e.headers||!this.headers)&&(this.headers=new r(e.headers)),this.method=u(e.method||this.method||"GET"),this.mode=e.mode||this.mode||null,this.referrer=null,("GET"===this.method||"HEAD"===this.method)&&o)throw new TypeError("Body not allowed for GET or HEAD requests");this._initBody(o)}function f(t){var e=new FormData;return t.trim().split("&").forEach(function(t){if(t){var r=t.split("="),o=r.shift().replace(/\+/g," "),n=r.join("=").replace(/\+/g," ");e.append(decodeURIComponent(o),decodeURIComponent(n))}}),e}function d(t){var e=new r,o=t.getAllResponseHeaders().trim().split("\n");return o.forEach(function(t){var r=t.trim().split(":"),o=r.shift().trim(),n=r.join(":").trim();e.append(o,n)}),e}function l(t,e){e||(e={}),this._initBody(t),this.type="default",this.status=e.status,this.ok=this.status>=200&&this.status<300,this.statusText=e.statusText,this.headers=e.headers instanceof r?e.headers:new r(e.headers),this.url=e.url||""}if(!self.fetch){r.prototype.append=function(r,o){r=t(r),o=e(o);var n=this.map[r];n||(n=[],this.map[r]=n),n.push(o)},r.prototype["delete"]=function(e){delete this.map[t(e)]},r.prototype.get=function(e){var r=this.map[t(e)];return r?r[0]:null},r.prototype.getAll=function(e){return this.map[t(e)]||[]},r.prototype.has=function(e){return this.map.hasOwnProperty(t(e))},r.prototype.set=function(r,o){this.map[t(r)]=[e(o)]},r.prototype.forEach=function(t,e){Object.getOwnPropertyNames(this.map).forEach(function(r){this.map[r].forEach(function(o){t.call(e,o,r,this)},this)},this)};var p={blob:"FileReader"in self&&"Blob"in self&&function(){try{return new Blob,!0}catch(t){return!1}}(),formData:"FormData"in self,arrayBuffer:"ArrayBuffer"in self},c=["DELETE","GET","HEAD","OPTIONS","POST","PUT"];h.prototype.clone=function(){return new h(this)},a.call(h.prototype),a.call(l.prototype),l.prototype.clone=function(){return new l(this._bodyInit,{status:this.status,statusText:this.statusText,headers:new r(this.headers),url:this.url})},l.error=function(){var t=new l(null,{status:0,statusText:""});return t.type="error",t};var y=[301,302,303,307,308];l.redirect=function(t,e){if(-1===y.indexOf(e))throw new RangeError("Invalid status code");return new l(null,{status:e,headers:{location:t}})},self.Headers=r,self.Request=h,self.Response=l,self.fetch=function(t,e){return new Promise(function(r,o){function n(){return"responseURL"in i?i.responseURL:/^X-Request-URL:/m.test(i.getAllResponseHeaders())?i.getResponseHeader("X-Request-URL"):void 0}var s;s=h.prototype.isPrototypeOf(t)&&!e?t:new h(t,e);var i=new XMLHttpRequest;i.onload=function(){var t=1223===i.status?204:i.status;if(100>t||t>599)return void o(new TypeError("Network request failed"));var e={status:t,statusText:i.statusText,headers:d(i),url:n()},s="response"in i?i.response:i.responseText;r(new l(s,e))},i.onerror=function(){o(new TypeError("Network request failed"))},i.open(s.method,s.url,!0),"include"===s.credentials&&(i.withCredentials=!0),"responseType"in i&&p.blob&&(i.responseType="blob"),s.headers.forEach(function(t,e){i.setRequestHeader(e,t)}),i.send("undefined"==typeof s._bodyInit?null:s._bodyInit)})},self.fetch.polyfill=!0}}();
-
-
 (function (self) {
 
     'use strict';
 
     var Events, Support, Template, Params, Lib,
-        API_VERSION = '2.0.1',
-        API_END_POINT = ((self.location.href + '').indexOf('local.getmo.') === -1) ? 'https://api.getmo.com.br' : 'https://local.getmo.api';
+        API_VERSION = '2.1.0',
+        API_END_POINT = ((self.location.href + '').indexOf('local.getmo.') === -1) ? 'https://api.getmo.com.br' : 'https://local.getmo.api',
+        FETCH_POLYFILL_END_POINT = 'https://cdn.getmo.com.br/polyfills/fetch.js';
 
     /*
      *
@@ -228,8 +222,6 @@
             image,
             interval,
             counter;
-
-
 
         return new Promise(function (resolve, reject) {
             image = new self.Image();
@@ -521,7 +513,6 @@
                 this.data[name] = lsParams[name];
                 return lsParams[name];
             }
-            // todo? nops search on ls-center for the needed param. how to make async work?
             return null;
         } catch (e) {
             return null;
@@ -545,16 +536,12 @@
                 }
             }
             self.localStorage.setItem(lsName, JSON.stringify(this.data));
-            // todo? nops... send current this.params to ls-center when needed (if second url param exists on setup)
         }
     };
 
     /*
      *
-     * if (!e.data.eventI && e.data.status === 'subscribedd && type e.data.params === 'objecto
- {
-      * LIB
-     * else {
+     * LIB
      *
      */
     Lib = function () {
@@ -818,7 +805,7 @@
         }
     };
 
-    Lib.prototype._setup = function (action) {
+    Lib.prototype._initialize = function (action) {
         var that = this,
             platform = this.support._getPlatform(),
             popupFail = false;
@@ -885,7 +872,6 @@
                                     } else {
                                         that._setupDefaultTemplate(popupFail);
                                     }
-
                                 }, function (e) {
                                     console.error(e);
                                 });
@@ -921,12 +907,43 @@
         });
     };
 
+    Lib.prototype._loadExternalScript = function (src, callback) {
+        var script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        if (callback) {
+            script.onreadystatechange = script.onload = function () {
+                var state = script.readyState;
+                if (!callback.done && (!state || /loaded|complete/.test(state))) {
+                    callback.done = true;
+                    callback();
+                }
+            };
+        }
+        document.getElementsByTagName('head')[0].appendChild(script);
+    };
+
+    Lib.prototype.ready = function () {
+        var that = this;
+        return new Promise(function (resolve, reject) {
+            if (self.fetch) {
+                return resolve();
+            }
+            that._loadExternalScript(FETCH_POLYFILL_END_POINT, function() {
+                if (self.fetch) {
+                    return resolve();
+                }
+                reject();
+            });
+        });
+    };
+
     Lib.prototype.checkStatus = function () {
         var that = this,
             platform = this.support._getPlatform();
 
         return new Promise(function (resolve, reject) {
-            that._setup('checkStatus').then(function () {
+            that._initialize('checkStatus').then(function () {
                 if (platform === 'CHROME' || platform === 'FIREFOX') {
                     that._postMessageToIframe('checkSubscriptionStatus').then(function (data) {
                         switch (data.status) {
@@ -984,7 +1001,7 @@
             platform = this.support._getPlatform();
 
         return new Promise(function (resolve, reject) {
-            that._setup('initSubscribe').then(function () {
+            that._initialize('initSubscribe').then(function () {
                 if (platform === 'CHROME' || platform === 'FIREFOX') {
 
                     that.checkStatus().then(function (status) {
@@ -1151,12 +1168,13 @@
                 devid: that.params._get('devid'),
                 appid: that.params._get('appid'),
                 hwid: that.params._get('hwid'),
+                regid: that.params._get('regid'),
                 platform: that.support._getPlatform(),
                 dateFormat: dateFormat || '',
                 browserVersion: that.support._getBrowserVersion()
             }, 'POST').then(function (json) {
                 for (i = 0; i < json.length; i++) {
-                    json[i].payload.icon = (json[i].payload.icon && (json[i].payload.icon + ''.indexOf('http') !== -1)) ? json[i].payload.icon : (that.params._get('setupEndPoint') ? that.params._get('setupEndPoint') : '') + '/webpush-image.png';
+                    json[i].payload.icon = (json[i].payload.icon && (json[i].payload.icon + ''.indexOf('http') !== -1)) ? json[i].payload.icon : (that.params._get('setupEndPoint') ? that.params._get('setupEndPoint') : '') + '/lib-default-icon.png';
                 }
                 resolve(json);
             }, function (e) {
@@ -1174,12 +1192,13 @@
                 devid: that.params._get('devid'),
                 appid: that.params._get('appid'),
                 hwid: that.params._get('hwid'),
+                regid: that.params._get('regid'),
                 platform: that.support._getPlatform(),
                 dateFormat: dateFormat || '',
                 browserVersion: that.support._getBrowserVersion()
             }, 'POST').then(function (json) {
                 for (i = 0; i < json.length; i++) {
-                    json[i].payload.icon = (json[i].payload.icon && (json[i].payload.icon + ''.indexOf('http') !== -1)) ? json[i].payload.icon : (that.params._get('setupEndPoint') ? that.params._get('setupEndPoint') : '') + '/webpush-image.png';
+                    json[i].payload.icon = (json[i].payload.icon && (json[i].payload.icon + ''.indexOf('http') !== -1)) ? json[i].payload.icon : (that.params._get('setupEndPoint') ? that.params._get('setupEndPoint') : '') + '/lib-default-icon.png';
                 }
                 resolve(json);
             }, function (e) {
@@ -1194,6 +1213,7 @@
             devid: this.params._get('devid'),
             appid: this.params._get('appid'),
             hwid: this.params._get('hwid'),
+            regid: this.params._get('regid'),
             pushid: pushid,
             browserVersion: this.support._getBrowserVersion()
         }, 'DELETE');
@@ -1204,6 +1224,7 @@
             devid: this.params._get('devid'),
             appid: this.params._get('appid'),
             hwid: this.params._get('hwid'),
+            regid: this.params._get('regid'),
             browserVersion: this.support._getBrowserVersion()
         }, 'DELETE');
     };
@@ -1212,6 +1233,7 @@
         return this._request(this.tagEndPoint + '/' + this.params._get('hwid'), {
             devid: this.params._get('devid'),
             appid: this.params._get('appid'),
+            regid: this.params._get('regid'),
             key: key,
             browserVersion: this.support._getBrowserVersion()
         }, 'POST');
@@ -1228,6 +1250,7 @@
             devid: this.params._get('devid'),
             appid: this.params._get('appid'),
             uuid: this.params._get('hwid'),
+            regid: this.params._get('regid'),
             type: type,
             key: key,
             value: value,
@@ -1246,6 +1269,7 @@
             devid: this.params._get('devid'),
             appid: this.params._get('appid'),
             uuid: this.params._get('hwid'),
+            regid: this.params._get('regid'),
             type: type,
             key: key,
             value: value,
@@ -1258,6 +1282,7 @@
             devid: this.params._get('devid'),
             appid: this.params._get('appid'),
             uuid: this.params._get('hwid'),
+            regid: this.params._get('regid'),
             block: bool ? '1' : '0',
             browserVersion: this.support._getBrowserVersion()
         }, 'PUT');
@@ -1278,7 +1303,7 @@
         create: function (setup) {
 
             if (!setup.devid || setup.devid === 'DEVID') {
-                console.error('"devid" was NOT set, see the documentation');
+                console.error('"devid" was NOT set correctly, see the documentation');
                 return;
             }
             if (typeof setup.appid !== 'object') {

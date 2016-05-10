@@ -1,6 +1,6 @@
 # Smartpush
 ---
-## Web Push SDK Documentation 2.0.1
+## Web Push SDK Documentation 2.1.0
 This lib activates the off-site web push service on your Web Browser. Remember that you must have a secure environment to use web push notifications. The SDK only works on ``https://`` connections.
 
 ##### I dont have a ssl certificate!
@@ -15,19 +15,19 @@ This project integrates off-site webpush notification system with **Smartpush AP
 
 **Important:** if you dont have a https connection and you choose to use owr infra-structure, you can skip the Download and Installation process descripted bellow, because the following 4 files are already present on owr CDN.
 
-Download "Webpush Installation Files" (*.zip) from [https://cdn.getmo.com.br/webpush-pack-2.0.1.zip](https://cdn.getmo.com.br/webpush-pack-2.0.1.zip) and install the following files in the root of your website:
-- webpush-2.0.1.html
-- webpush-chrome-manifest.json
-- webpush-service-worker.js
-- webpush-image.png (customize the image before installation)
+Download "Webpush Installation Files" (*.zip) from [https://cdn.getmo.com.br/webpush-pack-2.1.0.zip](https://cdn.getmo.com.br/webpush-pack-2.1.0.zip) and install the following files in the root of your website:
+- lib-2.1.0.html
+- lib-chrome-manifest.json
+- lib-service-worker.js
+- lib-default-icon.png (customize the image before installation)
 
 After that, you load the SDK's current version in your html page from one of this two sources: 
-- ``http://cdn.getmo.com.br/webpush-2.0.1.min.js``
-- ``https://cdn.getmo.com.br/webpush-2.0.1.min.js``
+- ``http://cdn.getmo.com.br/webpush-2.1.0.min.js``
+- ``https://cdn.getmo.com.br/webpush-2.1.0.min.js``
 
 and you are ready to go!
 ```html
-<script src="//cdn.getmo.com.br/webpush-2.0.1.min.js"></script>
+<script src="//cdn.getmo.com.br/webpush-2.1.0.min.js"></script>
 ```
  
 
@@ -137,6 +137,19 @@ var webpush = window.Smartpush.create({
 
 ##### The "webpush" object
 ---
+###### `webpush.ready()`
+
+> The **ready()** method initialize all needed features for the library work correctly.
+ 
+- ***IMPORTANT*** If you trigger methods before this promise, you will experience some problems.
+
+```javascript
+webpush.ready().then(function() {
+    // all functions below must be triggered inside here!
+});
+```
+
+
 ###### `webpush.checkStatus()`
 
 > The **chechStatus()** method check the current user registration status.
@@ -144,22 +157,24 @@ var webpush = window.Smartpush.create({
 - The **sucess** callback returns a string called ``"status"``. You can verify the **"status"** for the following values: ``"granted"``, ``"default"``, ``"denied"``
 - The **error** callback returns an error string explaining what went wrong.
 ```javascript
-webpush.checkStatus().then(function(status) {
-    if (status == 'granted') {
-        console.warn('The user has not accept the notification permission yet. Here is a good place to trigger the subscribe() method if you will ask the user permission to receive web push notifications.');
-        return;
-    }
-    if (status == 'default') {
-        console.warn('The user has not accept the notification permission yet. Here is a good place to trigger the subscribe() method if you will ask the user permission to receive web push notifications.');
-        return;
-    }
-    if (status == 'denied') {
-        console.warn('The user has denied the permission to receive notifications for this domain, until the permission are manually changed we cannot send data.');
-        return;
-    }
-}, function(e) {
-    console.error(e);
-    console.log('Something went wrong. Try again later, the GCM or APNS are unreachable at the moment');
+webpush.ready().then(function() {
+    webpush.checkStatus().then(function(status) {
+        if (status == 'granted') {
+            console.warn('The user has not accept the notification permission yet. Here is a good place to trigger the subscribe() method if you will ask the user permission to receive web push notifications.');
+            return;
+        }
+        if (status == 'default') {
+            console.warn('The user has not accept the notification permission yet. Here is a good place to trigger the subscribe() method if you will ask the user permission to receive web push notifications.');
+            return;
+        }
+        if (status == 'denied') {
+            console.warn('The user has denied the permission to receive notifications for this domain, until the permission are manually changed we cannot send data.');
+            return;
+        }
+    }, function(e) {
+        console.error(e);
+        console.log('Something went wrong. Try again later, the GCM or APNS are unreachable at the moment');
+    });
 });
 ```
 
@@ -170,29 +185,31 @@ webpush.checkStatus().then(function(status) {
 - The **sucess** callback returns an object called ``"user"``. We talk more about all the interaction with the **"user"** object below. Keep going...
 - The **error** callback returns a string called ``"status"``. You can verify the **"status"** for the following values: ``"default"``, ``"denied"``, ``"error"``. In case of error you can inspect your console for extra explanations.
 ```javascript
-webpush.subscribe().then(function(user) {
-    // the current user was successfully registered
-    // here you can trigger more methods, like:
-    // user.getTag()
-    // user.addTag()
-    // user.removeTag()
-    // user.getUnreadNotifications()
-    // user.getLastNotifications()
-    // user.removeUnreadNotification()
-    // user.removeAllUnreadNotifications()
-    // We talk more about all the methods below, keep going.
-}, function(status) {
-    if (status == 'default') {
-        console.warn('The user has not accept the notification permission yet. Here is a good place to trigger the subscribe() method if you will ask the user permission to receive web push notifications.');
-        return;
-    }
-    if (status == 'denied') {
-        console.warn('The user has denied the permission to receive notifications for this domain, until the permission are manually changed we cannot send data.');
-        return;
-    }
-    if (status == 'error') {
-        console.log('Try again later, the GCM or APNS are unreachable at the moment');
-    }
+webpush.ready().then(function() {
+    webpush.subscribe().then(function(user) {
+        // the current user was successfully registered
+        // here you can trigger more methods, like:
+        // user.getTag()
+        // user.addTag()
+        // user.removeTag()
+        // user.getUnreadNotifications()
+        // user.getLastNotifications()
+        // user.removeUnreadNotification()
+        // user.removeAllUnreadNotifications()
+        // We talk more about all the methods below, keep going.
+    }, function(status) {
+        if (status == 'default') {
+            console.warn('The user has not accept the notification permission yet. Here is a good place to trigger the subscribe() method if you will ask the user permission to receive web push notifications.');
+            return;
+        }
+        if (status == 'denied') {
+            console.warn('The user has denied the permission to receive notifications for this domain, until the permission are manually changed we cannot send data.');
+            return;
+        }
+        if (status == 'error') {
+            console.log('Try again later, the GCM or APNS are unreachable at the moment');
+        }
+    });
 });
 ```
 > **Attention!** The subscribe behavior can change according to your setup. If you have a https connection it will trigger the browser prompt notification, otherwise it can open a popup or redirect to your custom template.
@@ -202,10 +219,12 @@ webpush.subscribe().then(function(user) {
 > The **unSubscribe()** method remove the registration from the Browser.
 
 ```javascript
-webpush.unSubscribe().then(function() {
-    console.error('Unsubscribed successfully.');
-}, function() {
-    console.error('Cannot un-subscribe at this moment');
+webpush.ready().then(function() {
+    webpush.unSubscribe().then(function() {
+        console.error('Unsubscribed successfully.');
+    }, function() {
+        console.error('Cannot un-subscribe at this moment');
+    });
 });
 ```
 
@@ -364,70 +383,73 @@ window.addEventListener('load', function() {
         // Disable or hide your UI elements, "web push notifications" are not supported because this Browser dont support all needed features.
         return;
     }
+    
+    webpush.ready().then(function() {
 
-    button.on('click', function(){ // note: "button" here represents a clickable element
-
-        webpush.subscribe().then(function(user){
-
-            // make what you need with the user object, example:
-            user.addTag('TAG_NAME', 'TAG_VALUE', 'STRING');
-            user.removeTag('TAG_NAME', 'TAG_VALUE', 'STRING');
-
-            user.getTag('TAG_NAME').then(function(result){
-                console.log('getTag result', result);
-                console.log('getTag result.length', result.length);
-            }, function(e) {
-                console.error(e);
-                console.log('Do something when catch a error!');
-            });
-
-            user.getUnreadNotifications().then(function(result){         
-                console.log('getUnreadNotifications sucess', result);
-                // append elements to the DOM from "result" object
-                for (var i = 0; i < result.length; i++) {
-                    var pushid = result[i].pushid;
-                    element.on('click', function() { // note: "element" here represents a item on a list of elements
-                        user.removeUnreadNotification(pushid).then(function(){
-                            // remove the "element" from DOM
-                        }, function(e){
-                            console.error(e);
-                            // Do something when catch a error!
+        button.on('click', function(){ // note: "button" here represents a clickable element
+    
+            webpush.subscribe().then(function(user){
+    
+                // make what you need with the user object, example:
+                user.addTag('TAG_NAME', 'TAG_VALUE', 'STRING');
+                user.removeTag('TAG_NAME', 'TAG_VALUE', 'STRING');
+    
+                user.getTag('TAG_NAME').then(function(result){
+                    console.log('getTag result', result);
+                    console.log('getTag result.length', result.length);
+                }, function(e) {
+                    console.error(e);
+                    console.log('Do something when catch a error!');
+                });
+    
+                user.getUnreadNotifications().then(function(result){         
+                    console.log('getUnreadNotifications sucess', result);
+                    // append elements to the DOM from "result" object
+                    for (var i = 0; i < result.length; i++) {
+                        var pushid = result[i].pushid;
+                        element.on('click', function() { // note: "element" here represents a item on a list of elements
+                            user.removeUnreadNotification(pushid).then(function(){
+                                // remove the "element" from DOM
+                            }, function(e){
+                                console.error(e);
+                                // Do something when catch a error!
+                            });
                         });
-                    });
-                    button.on('click', function() { // note: "button" here represents a clickable element
-                        user.removeAllUnreadNotifications().then(function(){
-                            // remove "all elements" from the DOM
-                        }, function(e){
-                            console.error(e);
-                            // Do something when catch a error!
+                        button.on('click', function() { // note: "button" here represents a clickable element
+                            user.removeAllUnreadNotifications().then(function(){
+                                // remove "all elements" from the DOM
+                            }, function(e){
+                                console.error(e);
+                                // Do something when catch a error!
+                            });
                         });
-                    });
+                    }
+                }, function(e) {
+                    console.error(e)
+                    // Do something when catch a error!
+                });
+    
+                user.getLastNotifications().then(function(result){
+                    // append elements to the DOM from "result" object
+                }, function(e) {
+                    console.error(e)
+                    // Do something when catch a error!
+                });
+    
+            }, function(status) {
+                if (status == 'denied') {
+                    console.warn('The user has denied the permission to receive notifications for this domain, until the permission are manually changed we cannot send data.');
+                    return;
                 }
-            }, function(e) {
-                console.error(e)
-                // Do something when catch a error!
+                if (status == 'default') {
+                    console.log('The user dismiss the permission to receive notifications for this domain, ask later again!');
+                    return;
+                }
+                if (status == 'error') {
+                    console.error('An error occoured trying to subscribe.');
+                    return;
+                }
             });
-
-            user.getLastNotifications().then(function(result){
-                // append elements to the DOM from "result" object
-            }, function(e) {
-                console.error(e)
-                // Do something when catch a error!
-            });
-
-        }, function(status) {
-            if (status == 'denied') {
-                console.warn('The user has denied the permission to receive notifications for this domain, until the permission are manually changed we cannot send data.');
-                return;
-            }
-            if (status == 'default') {
-                console.log('The user dismiss the permission to receive notifications for this domain, ask later again!');
-                return;
-            }
-            if (status == 'error') {
-                console.error('An error occoured trying to subscribe.');
-                return;
-            }
         });
     });
 });

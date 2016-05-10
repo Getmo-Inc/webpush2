@@ -1,7 +1,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <link rel="manifest" href="/webpush-chrome-manifest.json">
+    <link rel="manifest" href="/lib-chrome-manifest.json">
     <script>
         var callback = '', params = {}, autoSubscribe = false, swHasLoaded = false, apiEndPoint = ((self.location.href+'').indexOf('local.getmo.') === -1) ? 'https://api.getmo.com.br' : 'https://local.getmo.api';
         function setParams(newParams) {
@@ -134,7 +134,7 @@
             }
         }
         function initializeServiceWorker(eventId) {
-            navigator.serviceWorker.register('/libServiceWorker.js', {scope: '/'}).then(function() {
+            navigator.serviceWorker.register('/lib-service-worker.js', {scope: '/'}).then(function() {
                 sendMessageToServiceWorker({test: true}).then(function(){
                     swHasLoaded = true;
                     if (autoSubscribe && autoSubscribe === true && parent === window) {

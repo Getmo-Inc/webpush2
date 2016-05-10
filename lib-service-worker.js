@@ -1,5 +1,5 @@
 var apiEndPoint = 'https://api.getmo.com.br',
-    defaultIcon = '/webpush-image.png';
+    defaultIcon = '/lib-default-icon.png';
 
 function indexedDb() {
     return new Promise(function(resolve, reject) {
@@ -174,6 +174,6 @@ self.addEventListener('notificationclick', function(e) {
 self.addEventListener('notificationclose', function (e) {
     var temp = e.notification.tag.split(','), pushid = temp[0];
     if (pushid) {
-        return postHit(pushid, 'CLOSED');
+        return postHit(pushid, 'DISMISSED');
     }
 });
