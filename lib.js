@@ -3,7 +3,7 @@
     'use strict';
 
     var Events, Support, Template, Params, Lib,
-        API_VERSION = '2.1.0',
+        API_VERSION = '2.1.1',
         API_END_POINT = ((self.location.href + '').indexOf('local.getmo.') === -1) ? 'https://api.getmo.com.br' : 'https://local.getmo.api',
         FETCH_POLYFILL_END_POINT = 'https://cdn.getmo.com.br/polyfills/fetch.js';
 
@@ -682,6 +682,7 @@
         this.iframe.style.display = 'none';
         this.iframe.src = (this.params._get('setupEndPoint') || '') + '/lib' + (this.version ? '-' + this.version : '') + '.html';
         this.iframe.onload = function () {
+            that.events.trigger('iframe-loaded');
             if (!that.control.iframe.hasLoaded) {
                 that.control.iframe.hasLoaded = true;
                 that.control.iframe.isLoading = false;
@@ -857,7 +858,11 @@
                                 }
                             case 'setup-reload':
                                 if (self.location.href.indexOf('https') !== -1) {
-                                    console.warn('You are using a secure connection. HTTPS');
+                                    that.events.one('iframe-loaded', function() {
+                                        that._postMessageToIframe(action).then(function(data2) {
+                                            resolve(data2);
+                                        });
+                                    });
                                     return;
                                 }
                             case 'registered-redirect':
