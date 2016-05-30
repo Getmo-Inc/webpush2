@@ -22,12 +22,12 @@ Download "Webpush Installation Files" (*.zip) from [https://cdn.getmo.com.br/web
 - lib-default-icon.png (customize the image before installation)
 
 After that, you load the SDK's current version in your html page from one of this two sources: 
-- ``http://cdn.getmo.com.br/webpush-2.1.1.min.js``
-- ``https://cdn.getmo.com.br/webpush-2.1.1.min.js``
+- ``http://cdn.getmo.com.br/lib-2.1.1.min.js``
+- ``https://cdn.getmo.com.br/lib-2.1.1.min.js``
 
 and you are ready to go!
 ```html
-<script src="//cdn.getmo.com.br/webpush-2.1.1.min.js"></script>
+<script src="//cdn.getmo.com.br/lib-2.1.1.min.js"></script>
 ```
  
 
