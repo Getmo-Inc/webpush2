@@ -1,4 +1,4 @@
-# Smartpush
+# [DEPRECATED] Smartpush
 ---
 ## Web Push SDK Documentation 2.1.1
 This lib activates the off-site web push service on your Web Browser. Remember that you must have a secure environment to use web push notifications. The SDK only works on ``https://`` connections.
